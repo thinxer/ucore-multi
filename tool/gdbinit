@@ -1,7 +1,6 @@
 file bin/kernel
 define hook-stop
-x/5i $pc
+x/5i $cs*16+$pc
 end
 target remote :12345
 b kern_init
-c

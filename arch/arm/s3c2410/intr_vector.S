@@ -1,6 +1,6 @@
 /* This file contains the interrupt vector.
  * __intr_vector_start and __intr_vector_end marks where the vector resides
- * after linking. This range should either be copied to 0x0 or be mapped 
+ * after linking. This range should either be copied to 0x0 or be mapped
  * there.
  */
 .global __intr_vector_start
@@ -20,7 +20,7 @@
 .code 32
 
 __intr_vector_start:
-	
+
 	ldr	pc,reset
 	ldr pc,undefined
 	ldr pc,swi
@@ -48,12 +48,12 @@ reserved:
 irq:
     .word	irq_proc
 fiq:
-    .word	. 
+    .word	.
 
 __intr_vector_end:
 
 /* irq procedure, which will call intr_dispatch.
- */ 
+ */
 irq_proc:
 	sub lr,lr,#4
 	stmfd sp!,{r14}
