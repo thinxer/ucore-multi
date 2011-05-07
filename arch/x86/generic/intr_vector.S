@@ -2,6 +2,7 @@
 
 # vectors.S sends all traps here.
 .text
+.extern trap
 .globl __alltraps
 __alltraps:
     # push registers to build a trap frame
@@ -19,7 +20,7 @@ __alltraps:
     pushl %esp
 
     # call trap(tf), where tf=%esp
-    call intr_dispatch
+    call trap
 
     # pop the pushed stack pointer
     popl %esp

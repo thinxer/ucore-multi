@@ -16,18 +16,21 @@ kern_init(void) {
     // init console
     cons_init();
 
+    cprintf("initializing\n");
+
     // init interrupts
     intr_init();
 
     // init timer
     clock_init();
 
-    // init interrupts
+    // enable interrupts
     intr_enable();
 
     // init message
     cprintf("\n(THU.CST) ucore(arm)\n");
 
+EMPTY_LOOP:
     // do nothing
     while(1);
 }
