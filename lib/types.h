@@ -29,5 +29,7 @@ typedef uint32_t uintptr_t;
 /* size_t is used for memory object sizes */
 typedef uintptr_t size_t;
 
+#define BITS_PER_LONG (sizeof(long)*8)
+
 #endif /* !__LIBS_TYPES_H__ */
 

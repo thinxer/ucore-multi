@@ -2,7 +2,6 @@
 #include <error.h>
 #include <stdio.h>
 #include <string.h>
-#include <arch.h>
 #include <div64.h>
 
 /* *

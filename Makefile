@@ -41,7 +41,7 @@ else ifeq ($(TARGET_ARCH), arm)
 CC := $(TARGET_PREFIX)gcc
 endif
 # general flags
-CFLAGS := -fno-builtin -Wall -nostdinc -nostdlib -fno-stack-protector -gstabs -Os
+CFLAGS := -fno-builtin -Wall -nostdinc -nostdlib -fno-stack-protector -gstabs -O2
 # includes
 CFLAGS += -I . -I ./lib
 CFLAGS += -I ./kern/driver -I ./kern/debug -I ./kern/trap
@@ -103,7 +103,12 @@ ASM_OBJS	:=	obj/$(MACH_DIR)/init.o\
 				obj/$(MACH_DIR)/intr_vector.o
 
 ifeq ($(TARGET_ARCH), arm)
-	ASM_OBJS += obj/$(MACH_DIR)/div64.o
+ARCH_OBJS	+=	obj/$(ARCH_DIR)/lib/div0.o
+ASM_OBJS	+=	obj/$(ARCH_DIR)/lib/_umodsi3.o \
+				obj/$(ARCH_DIR)/lib/_modsi3.o \
+				obj/$(ARCH_DIR)/lib/_udivsi3.o \
+				obj/$(ARCH_DIR)/lib/_divsi3.o \
+				obj/$(MACH_DIR)/div64.o
 endif
 
 $(ASM_OBJS):obj/%.o:%.S
@@ -149,9 +154,9 @@ dskyeye: image
 
 .PHONY: qemu debug-qemu
 qemu: image
-	qemu -hda bin/ucore.img
+	$(QEMU) -parallel stdio -serial null -hda bin/ucore.img
 dqemu: image
-	qemu -S -s -hda bin/ucore.img -gdb tcp::12345
+	$(QEMU) -parallel stdio -serial null -S -s -hda bin/ucore.img -gdb tcp::12345
 
 .PHONY: gdb
 gdb:
