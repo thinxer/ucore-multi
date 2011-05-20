@@ -22,4 +22,8 @@ SECTIONS
         *(.bss)
     }
     __bss_end__ = .;
+
+    /DISCARD/ : {
+        *(.eh_frame .note.GNU-stack)
+    }
 }

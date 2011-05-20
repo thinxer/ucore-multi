@@ -36,7 +36,7 @@ HOSTCFLAGS	:= -g -Wall -O2
 
 # for compiling to target arch
 ifeq ($(TARGET_ARCH), x86)
-CC := $(TARGET_PREFIX)gcc-4.4
+CC := $(TARGET_PREFIX)gcc
 else ifeq ($(TARGET_ARCH), arm)
 CC := $(TARGET_PREFIX)gcc
 endif
