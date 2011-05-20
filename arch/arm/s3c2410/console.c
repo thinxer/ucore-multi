@@ -1,4 +1,4 @@
-#include <kern/driver/console.h>
+#include <console.h>
 
 #define UFCON0  ((volatile unsigned int *)(0x50000020))
 

@@ -7,6 +7,10 @@
 #include <atomic.h>
 #include <bitops.h>
 
+/* Before calling into kern_init, we must make sure the memory is properly
+ * mapped. This is because the kernel is compiled against KERNBASE but it's not
+ * the address it would be loaded into the memory.
+ * */
 int kern_init(void) __attribute__((noreturn));
 
 int
@@ -20,6 +24,9 @@ kern_init(void) {
 
     cprintf("initializing\n");
 
+    // pmm init
+    //pmm_init();
+
     // init interrupts
     intr_init();
 
@@ -27,6 +34,7 @@ kern_init(void) {
     clock_init();
 
     // enable interrupts
+    // not working yet
     // intr_enable();
 
     atomic_t a;

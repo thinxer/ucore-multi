@@ -14,7 +14,7 @@
  * }
  */
 
-#define do_div(n, base) ({                                          \
+#define arch_do_div(n, base) ({                                     \
             unsigned long __upper, __low, __high, __mod, __base;    \
             __base = (base);                                        \
             asm ("" : "=a" (__low), "=d" (__high) : "A" (n));       \

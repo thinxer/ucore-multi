@@ -1,4 +1,4 @@
-#include <intr.h>
+#include <mach/intr.h>
 #include <stdio.h>
 #include <types.h>
 #include <string.h>

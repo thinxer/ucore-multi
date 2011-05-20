@@ -13,11 +13,13 @@ using an ARM920T core.
 You need gcc 4.4 or 4.5 to compile for the x86 architecture. gcc 4.6 is known
 not to work.
 
-    make TARGET_ARCH=x86
+    make TARGET_ARCH=x86 prepare
+    make TARGET_ARCH=x86 image
 
 Compile for the ARM architecture:
 
-    make TARGET_ARCH=arm
+    make TARGET_ARCH=arm prepare
+    make TARGET_ARCH=arm image
 
 #source code organization
 

@@ -1,5 +1,5 @@
-#include <mmu.h>
-#include <memlayout.h>
+#include <arch/mmu.h>
+#include <mach/memlayout.h>
 
 #define REALLOC(x) (x - KERNBASE)
 
@@ -21,9 +21,9 @@ relocated:
     # set ebp, esp
     movl $0x0, %ebp
     # the kernel stack region is from bootstack -- bootstacktop,
-    # the kernel stack size is KSTACKSIZE (8KB)defined in memlayout.h
+    # the kernel stack size is KSTACKSIZE (8KB) defined in memlayout.h
     movl $bootstacktop, %esp
-    # now kernel stack is ready , call the first C function
+    # now kernel stack is ready, call the first C function
     call kern_init
 
 # should never get here

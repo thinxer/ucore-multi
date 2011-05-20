@@ -1,7 +1,10 @@
-#ifndef __KERN_MM_MEMLAYOUT_H__
-#define __KERN_MM_MEMLAYOUT_H__
+#ifndef __I386_MMMEMLAYOUT_H__
+#define __I386_MMMEMLAYOUT_H__
 
-/* This file contains the definitions for memory management in our OS. */
+/**
+ * This file contains the definitions for memory management in our OS for the
+ * i386 architecture.
+ * */
 
 /* global segment number */
 #define SEG_KTEXT   1
@@ -52,27 +55,32 @@
  *
  * */
 
-/* All physical memory mapped at this address */
+// All physical memory mapped at this address.
 #define KERNBASE            0xC0000000
-#define KMEMSIZE            0x38000000                  // the maximum amount of physical memory
+// The maximum amount of physical memory.
+#define KMEMSIZE            0x38000000
 #define KERNTOP             (KERNBASE + KMEMSIZE)
 
 /* *
- * Virtual page table. Entry PDX[VPT] in the PD (Page Directory) contains
- * a pointer to the page directory itself, thereby turning the PD into a page
- * table, which maps all the PTEs (Page Table Entry) containing the page mappings
- * for the entire virtual address space into that 4 Meg region starting at VPT.
+ * Virtual page table. Entry PDX[VPT] in the PD (Page Directory) contains a
+ * pointer to the page directory itself, thereby turning the PD into a page
+ * table, which maps all the PTEs (Page Table Entry) containing the page
+ * mappings for the entire virtual address space into that 4 Meg region starting
+ * at VPT.
  * */
 #define VPT                 0xFAC00000
 
-#define KSTACKPAGE          2                           // # of pages in kernel stack
-#define KSTACKSIZE          (KSTACKPAGE * PGSIZE)       // sizeof kernel stack
+// # of pages in kernel stack
+#define KSTACKPAGE          2
+// sizeof kernel stack
+#define KSTACKSIZE          (KSTACKPAGE * PGSIZE)
 
 #ifndef __ASSEMBLER__
 
 #include <types.h>
 #include <atomic.h>
 #include <list.h>
+#include <memlayout.h>
 
 typedef uintptr_t pte_t;
 typedef uintptr_t pde_t;
@@ -91,35 +99,7 @@ struct e820map {
     } __attribute__((packed)) map[E820MAX];
 };
 
-/* *
- * struct Page - Page descriptor structures. Each Page describes one
- * physical page. In kern/mm/pmm.h, you can find lots of useful functions
- * that convert Page to other data types, such as phyical address.
- * */
-struct Page {
-    atomic_t ref;                   // page frame's reference counter
-    uint32_t flags;                 // array of flags that describe the status of the page frame
-    list_entry_t page_link;         // free list link
-};
-
-/* Flags describing the status of a page frame */
-#define PG_reserved                 0       // the page descriptor is reserved for kernel or unusable
-
-#define SetPageReserved(page)       set_bit(PG_reserved, &((page)->flags))
-#define ClearPageReserved(page)     clear_bit(PG_reserved, &((page)->flags))
-#define PageReserved(page)          test_bit(PG_reserved, &((page)->flags))
-
-// convert list entry to page
-#define le2page(le, member)                 \
-    to_struct((le), struct Page, member)
-
-/* free_area_t - maintains a doubly linked list to record free (unused) pages */
-typedef struct {
-    list_entry_t free_list;         // the list header
-    unsigned int nr_free;           // # of free pages in this free list
-} free_area_t;
-
 #endif /* !__ASSEMBLER__ */
 
-#endif /* !__KERN_MM_MEMLAYOUT_H__ */
+#endif /* !__I386_MMMEMLAYOUT_H__ */
 

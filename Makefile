@@ -43,9 +43,7 @@ endif
 # general flags
 CFLAGS := -fno-builtin -Wall -nostdinc -nostdlib -fno-stack-protector -gstabs -O2
 # includes
-CFLAGS += -I . -I ./lib
-CFLAGS += -I ./kern/driver -I ./kern/debug -I ./kern/trap
-CFLAGS += -I $(ARCH_DIR) -I $(MACH_DIR)
+CFLAGS += -I ./include -I ./kern/include
 
 # addition flags depending on target_arch
 ifeq ($(TARGET_ARCH), x86)
@@ -74,6 +72,13 @@ DIRNAME		:= dirname
 
 .DEFAULT_GOAL := image
 
+# link include directories
+.PHONY: prepare
+prepare:
+	cd include && ln -s ../$(ARCH_DIR)/include arch
+	cd include && ln -s ../$(MACH_DIR)/include mach
+
+
 .PHONY: boot
 boot: bin/boot.bin
 
@@ -91,14 +96,16 @@ obj/boot/boot.o: $(MACH_DIR)/boot/bootasm.S $(MACH_DIR)/boot/bootmain.c
 kernel: bin/kernel
 
 KERN_OBJS 	:=	obj/kern/init/init.o \
-				obj/kern/debug/panic.o
+				obj/kern/debug/panic.o \
+				# obj/kern/mm/buddy_pmm.o
 LIB_OBJS	:=	obj/lib/printfmt.o\
 				obj/lib/string.o\
 				obj/lib/readline.o\
 				obj/lib/stdio.o
-ARCH_OBJS 	:=	obj/$(MACH_DIR)/clock.o\
-				obj/$(MACH_DIR)/console.o\
-				obj/$(MACH_DIR)/intr.o
+ARCH_OBJS 	:=	obj/$(MACH_DIR)/clock.o \
+				obj/$(MACH_DIR)/console.o \
+				obj/$(MACH_DIR)/intr.o \
+				# obj/$(MACH_DIR)/pmm.o
 ASM_OBJS	:=	obj/$(MACH_DIR)/init.o\
 				obj/$(MACH_DIR)/intr_vector.o
 
@@ -108,7 +115,7 @@ ASM_OBJS	+=	obj/$(ARCH_DIR)/lib/_umodsi3.o \
 				obj/$(ARCH_DIR)/lib/_modsi3.o \
 				obj/$(ARCH_DIR)/lib/_udivsi3.o \
 				obj/$(ARCH_DIR)/lib/_divsi3.o \
-				obj/$(MACH_DIR)/div64.o
+				obj/$(ARCH_DIR)/lib/div64.o
 endif
 
 $(ASM_OBJS):obj/%.o:%.S
@@ -166,5 +173,7 @@ gdb:
 clean:
 	@$(RM) -r obj
 	@$(RM) -r bin
+	@$(RM) include/arch
+	@$(RM) include/mach
 
 #  vim: set noet ts=4 sw=4 tw=0 :

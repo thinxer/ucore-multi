@@ -1,7 +1,7 @@
 OUTPUT_ARCH(arm)
 ENTRY(_start)
 
-SECTIONS 
+SECTIONS
 {
     . = 0x30000000;
     .text :

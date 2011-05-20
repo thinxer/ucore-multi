@@ -8,7 +8,7 @@ typedef struct {
 } atomic_t;
 
 // Include arch dependent declaration
-#include <asm/atomic.h>
+#include <arch/asm/atomic.h>
 
 /* *
  * atomic_read - read atomic variable

@@ -1,11 +1,11 @@
-#include <x86.h>
-#include <intr.h>
+#include <arch/x86.h>
+#include <arch/intr.h>
 #include <stdio.h>
 #include <console.h>
 #include <types.h>
 #include <string.h>
-#include <mmu.h>
-#include <memlayout.h>
+#include <arch/mmu.h>
+#include <mach/memlayout.h>
 #include <assert.h>
 
 /* PIC */

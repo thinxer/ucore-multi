@@ -2,6 +2,7 @@
 #define __ARCH_X86_INTR_H__
 
 #include <types.h>
+#include <intr.h>
 
 /* Trap Numbers */
 
@@ -75,29 +76,5 @@ void print_regs(struct pushregs *regs);
 bool trap_in_kernel(struct trapframe *tf);
 
 
-/*
- * Initialize interrupts.
- */
-void intr_init(void);
-
-/*
- * Enable interrupts.
- */
-void intr_enable(void);
-
-/*
- * Disable interrupts.
- */
-void intr_disable(void);
-
-/*
- * Mask an interrupt (disable the interrupt).
- */
-void intr_mask(uint32_t offset);
-
-/*
- * Unmask an interrupt (enable the interrupt).
- */
-void intr_umask(uint32_t offset);
 
 #endif /* !__ARCH_X86_INTR_H__ */

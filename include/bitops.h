@@ -13,7 +13,7 @@
  * Include this here because some architectures need generic_ffs/fls in
  * scope
  */
-#include <asm/bitops.h>
+#include <arch/asm/bitops.h>
 
 /**
  * rol32 - rotate a 32-bit value left

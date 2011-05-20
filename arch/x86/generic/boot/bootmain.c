@@ -1,6 +1,7 @@
 #include <types.h>
-#include <x86.h>
 #include <elf.h>
+
+#include <arch/x86.h>
 
 /* *********************************************************************
  * This a dirt simple boot loader, whose sole job is to boot

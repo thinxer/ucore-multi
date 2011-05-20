@@ -1,10 +1,10 @@
 #include <types.h>
-#include <x86.h>
+#include <arch/x86.h>
 #include <stdio.h>
 #include <string.h>
 #include <kbdreg.h>
-#include <memlayout.h>
-#include <intr.h>
+#include <mach/memlayout.h>
+#include <arch/intr.h>
 #include <irqflags.h>
 
 /* stupid I/O delay routine necessitated by historical PC design flaws */

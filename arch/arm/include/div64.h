@@ -47,6 +47,6 @@
 	__rem;							\
 })
 
-#define do_div(n, base) __do_div_asm(n, base)
+#define arch_do_div(n, base) __do_div_asm(n, base)
 
 #endif /* !__ARM_DIV64_H__ */

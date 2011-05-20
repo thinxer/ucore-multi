@@ -1,6 +1,6 @@
-#include <x86.h>
 #include <stdio.h>
-#include <intr.h>
+#include <arch/x86.h>
+#include <arch/intr.h>
 
 /* *
  * Support for time-related hardware gadgets - the 8253 timer,

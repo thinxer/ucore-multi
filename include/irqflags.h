@@ -11,7 +11,7 @@
 #define _LINUX_TRACE_IRQFLAGS_H
 
 #include <typecheck.h>
-#include <asm/irqflags.h>
+#include <arch/asm/irqflags.h>
 
 /*
  * Wrap the arch provided IRQ routines to provide appropriate checks.

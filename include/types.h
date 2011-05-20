@@ -5,6 +5,8 @@
 #define NULL ((void *)0)
 #endif
 
+#ifndef __ASSEMBLER__
+
 /* Represents true-or-false values */
 typedef int bool;
 
@@ -28,6 +30,8 @@ typedef uint32_t uintptr_t;
 
 /* size_t is used for memory object sizes */
 typedef uintptr_t size_t;
+
+#endif
 
 #define BITS_PER_LONG (sizeof(long)*8)
 

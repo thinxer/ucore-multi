@@ -1,4 +1,4 @@
-#include <kern/driver/clock.h>
+#include <clock.h>
 #include <intr.h>
 #include <types.h>
 
