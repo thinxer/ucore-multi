@@ -1,12 +1,12 @@
 #include <types.h>
-#include <x86.h>
+#include <arch/x86.h>
 #include <stdio.h>
 #include <string.h>
-#include <mmu.h>
-#include <memlayout.h>
-#include <pmm.h>
+#include <arch/mmu.h>
+#include <mach/memlayout.h>
+#include <arch/pmm.h>
 #include <buddy_pmm.h>
-#include <sync.h>
+#include <irqflags.h>
 #include <error.h>
 
 /* *
@@ -151,36 +151,36 @@ init_memmap(struct Page *base, size_t n) {
 struct Page *
 alloc_pages(size_t n) {
     struct Page *page;
-    bool intr_flag;
-    local_intr_save(intr_flag);
+    unsigned long intr_flag;
+    local_irq_save(intr_flag);
     {
         page = pmm_manager->alloc_pages(n);
     }
-    local_intr_restore(intr_flag);
+    local_irq_restore(intr_flag);
     return page;
 }
 
 // call pmm->free_pages to free a continuous n*PAGESIZE memory
 void
 free_pages(struct Page *base, size_t n) {
-    bool intr_flag;
-    local_intr_save(intr_flag);
+    unsigned long intr_flag;
+    local_irq_save(intr_flag);
     {
         pmm_manager->free_pages(base, n);
     }
-    local_intr_restore(intr_flag);
+    local_irq_restore(intr_flag);
 }
 
 // call pmm->nr_free_pages to get the size (nr*PAGESIZE) of current free memory
 size_t
 nr_free_pages(void) {
     size_t ret;
-    bool intr_flag;
-    local_intr_save(intr_flag);
+    unsigned long intr_flag;
+    local_irq_save(intr_flag);
     {
         ret = pmm_manager->nr_free_pages();
     }
-    local_intr_restore(intr_flag);
+    local_irq_restore(intr_flag);
     return ret;
 }
 

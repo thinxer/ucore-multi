@@ -278,7 +278,3 @@ void
 intr_umask(uint32_t irq) {
     pic_umask(irq);
 }
-
-static void
-intr_clearpending(uint32_t offset) {
-}

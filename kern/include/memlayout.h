@@ -16,7 +16,7 @@ struct Page {
     atomic_t ref;
 
     // Array of flags that describe the status of the page frame.
-    uint32_t flags;
+    unsigned long flags;
 
     // Used in buddy system, stores the order (the X in 2^X) of the continuous
     // memory block.

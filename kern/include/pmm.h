@@ -2,6 +2,7 @@
 #define __KERN_MM_PMM_H__
 
 #include <types.h>
+#include <memlayout.h>
 
 // pmm_manager is a physical memory management class. A special pmm manager -
 // XXX_pmm_manager only needs to implement the methods in pmm_manager class,
@@ -34,5 +35,15 @@ struct pmm_manager {
 };
 
 extern const struct pmm_manager *pmm_manager;
+
+void pmm_init(void);
+struct Page *alloc_pages(size_t n);
+void free_pages(struct Page *base, size_t n);
+size_t nr_free_pages(void);
+
+#define alloc_page() alloc_pages(1)
+#define free_page(page) free_pages(page, 1)
+
+#include <arch/pmm.h>
 
 #endif /* !__KERN_MM_PMM_H__ */

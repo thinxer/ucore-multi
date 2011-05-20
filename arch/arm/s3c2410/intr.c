@@ -34,12 +34,12 @@ intr_disable(void) {
 
 void
 intr_mask(uint32_t offset) {
-	*(volatile uint32_t *)INTMSK|=(1<<offset);
+	*(volatile uint32_t *)INTMSK |= (1<<offset);
 }
 
 void
 intr_umask(uint32_t offset) {
-	*(volatile uint32_t *)INTMSK&=~(1<<offset);
+	*(volatile uint32_t *)INTMSK &= ~(1<<offset);
 }
 
 static void
@@ -54,12 +54,12 @@ intr_dispatch(void) {
     intr_clearpending(int_offset);
 	cprintf("%d\t", int_offset);
 
-    // enable for nested interrupt
+    // enable interrupt nesting
 	intr_enable();
-    
+
     // dispatch interrupt
     cprintf("interrupt occured\n");
 
-    // prepare to return
+    // disable interrupt and prepare to return
 	intr_disable();
 }

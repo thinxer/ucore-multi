@@ -88,8 +88,8 @@ bin/boot.bin: obj/boot/boot.o
 
 obj/boot/boot.o: $(MACH_DIR)/boot/bootasm.S $(MACH_DIR)/boot/bootmain.c
 	@$(MKDIR) `$(DIRNAME) $@`
-	$(CC) $(CFLAGS) -c -oobj/boot/bootmain.o $(MACH_DIR)/boot/bootmain.c
-	$(CC) $(CFLAGS) -c -oobj/boot/bootasm.o $(MACH_DIR)/boot/bootasm.S
+	$(CC) $(CFLAGS) -Os -c -oobj/boot/bootmain.o $(MACH_DIR)/boot/bootmain.c
+	$(CC) $(CFLAGS) -Os -c -oobj/boot/bootasm.o $(MACH_DIR)/boot/bootasm.S
 	$(LD) $(LDFLAGS) -T$(MACH_DIR)/boot/boot.lds -o $@ obj/boot/bootasm.o obj/boot/bootmain.o
 
 .PHONY: kernel
@@ -97,7 +97,7 @@ kernel: bin/kernel
 
 KERN_OBJS 	:=	obj/kern/init/init.o \
 				obj/kern/debug/panic.o \
-				# obj/kern/mm/buddy_pmm.o
+				obj/kern/mm/buddy_pmm.o
 LIB_OBJS	:=	obj/lib/printfmt.o\
 				obj/lib/string.o\
 				obj/lib/readline.o\
@@ -105,7 +105,7 @@ LIB_OBJS	:=	obj/lib/printfmt.o\
 ARCH_OBJS 	:=	obj/$(MACH_DIR)/clock.o \
 				obj/$(MACH_DIR)/console.o \
 				obj/$(MACH_DIR)/intr.o \
-				# obj/$(MACH_DIR)/pmm.o
+				obj/$(ARCH_DIR)/pmm.o
 ASM_OBJS	:=	obj/$(MACH_DIR)/init.o\
 				obj/$(MACH_DIR)/intr_vector.o
 
@@ -173,7 +173,7 @@ gdb:
 clean:
 	@$(RM) -r obj
 	@$(RM) -r bin
-	@$(RM) include/arch
-	@$(RM) include/mach
+	#@$(RM) include/arch
+	#@$(RM) include/mach
 
 #  vim: set noet ts=4 sw=4 tw=0 :
