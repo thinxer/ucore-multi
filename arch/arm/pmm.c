@@ -232,13 +232,13 @@ pmm_init(void) {
     boot_pgdir_p = PADDR(boot_pgdir);
     cprintf("pgdir is at (p): %08lx\n", boot_pgdir_p);
 
-    // check_pgdir();
+    check_pgdir();
 
     static_assert(KERNBASE % PTSIZE == 0 && KERNTOP % PTSIZE == 0);
 
     // recursively insert boot_pgdir in itself to form a virtual page table at
     // virtual address VPT
-    // boot_pgdir[PDX(VPT)] = PADDR(boot_pgdir) | PTE_P | PTE_W;
+    boot_pgdir[PDX(VPT)] = PADDR(boot_pgdir) | PTE_P | PTE_RW;
 
     cprintf("mapping initial pages... ");
     // Kernel
@@ -263,7 +263,7 @@ pmm_init(void) {
 
     // Now the basic virtual memory map(see memalyout.h) is established.
     // Check the correctness of the basic virtual memory map.
-    // check_boot_pgdir();
+    check_boot_pgdir();
 
     // print_pgdir();
 }
@@ -314,7 +314,11 @@ page_remove_pte(pde_t *pgdir, uintptr_t la, pte_t *ptep) {
         if (page_ref_dec(page) == 0) {
             free_page(page);
         }
+        // XXX remove four enties together
         *ptep = 0;
+        *(ptep+1) = 0;
+        *(ptep+2) = 0;
+        *(ptep+3) = 0;
         tlb_invalidate(pgdir, la);
     }
 }
@@ -352,7 +356,11 @@ page_insert(pde_t *pgdir, struct Page *page, uintptr_t la, uint32_t perm) {
             page_remove_pte(pgdir, la, ptep);
         }
     }
+    // XXX ARM needs to keep 4 entries for a fine page.
     *ptep = page2pa(page) | PTE_P | perm;
+    *(ptep+1) = page2pa(page) | PTE_P | perm;
+    *(ptep+2) = page2pa(page) | PTE_P | perm;
+    *(ptep+3) = page2pa(page) | PTE_P | perm;
     tlb_invalidate(pgdir, la);
     return 0;
 }
@@ -372,10 +380,9 @@ check_alloc_page(void) {
     cprintf("check_alloc_page() succeeded!\n");
 }
 
-/*
 static void
 check_pgdir(void) {
-    assert(npage <= KMEMSIZE / PGSIZE);
+    assert(npage <= (PKERNBASE + KMEMSIZE) / PGSIZE);
     assert(boot_pgdir != NULL && (uint32_t)PGOFF(boot_pgdir) == 0);
     assert(get_page(boot_pgdir, 0x0, NULL) == NULL);
 
@@ -388,15 +395,16 @@ check_pgdir(void) {
     assert(pa2page(*ptep) == p1);
     assert(page_ref(p1) == 1);
 
-    ptep = &((pte_t *)KADDR(PDE_ADDR(boot_pgdir[0])))[1];
+    // the second page is at 4, not 1.
+    ptep = &((pte_t *)KADDR(PDE_ADDR(boot_pgdir[0])))[0+4];
     assert(get_pte(boot_pgdir, PGSIZE, 0) == ptep);
 
     p2 = alloc_page();
-    assert(page_insert(boot_pgdir, p2, PGSIZE, PTE_U | PTE_W) == 0);
+    assert(page_insert(boot_pgdir, p2, PGSIZE, PTE_RW) == 0);
     assert((ptep = get_pte(boot_pgdir, PGSIZE, 0)) != NULL);
-    assert(*ptep & PTE_U);
-    assert(*ptep & PTE_W);
-    assert(boot_pgdir[0] & PTE_U);
+    assert(*ptep & PTE_RW);
+    // XXX what's the next line for?
+    // assert(boot_pgdir[0] & PTE_RW);
     assert(page_ref(p2) == 1);
 
     assert(page_insert(boot_pgdir, p1, PGSIZE, 0) == 0);
@@ -404,7 +412,7 @@ check_pgdir(void) {
     assert(page_ref(p2) == 0);
     assert((ptep = get_pte(boot_pgdir, PGSIZE, 0)) != NULL);
     assert(pa2page(*ptep) == p1);
-    assert((*ptep & PTE_U) == 0);
+    assert((*ptep & PTE_RW) == 0);
 
     page_remove(boot_pgdir, 0x0);
     assert(page_ref(p1) == 1);
@@ -426,19 +434,20 @@ check_boot_pgdir(void) {
     pte_t *ptep;
     int i;
     for (i = 0; i < npage; i += PGSIZE) {
-        assert((ptep = get_pte(boot_pgdir, (uintptr_t)KADDR(i), 0)) != NULL);
-        assert(PTE_ADDR(*ptep) == i);
+        assert((ptep = get_pte(boot_pgdir, (uintptr_t)KADDR(PKERNBASE + i), 0)) != NULL);
+        assert(PTE_ADDR(*ptep) == (PKERNBASE + i));
     }
 
     assert(PDE_ADDR(boot_pgdir[PDX(VPT)]) == PADDR(boot_pgdir));
 
-    assert(boot_pgdir[0] == 0);
+    // No need for this on ARM.
+    // assert(boot_pgdir[0] == 0);
 
     struct Page *p;
     p = alloc_page();
-    assert(page_insert(boot_pgdir, p, 0x100, PTE_W) == 0);
+    assert(page_insert(boot_pgdir, p, 0x100, PTE_RW) == 0);
     assert(page_ref(p) == 1);
-    assert(page_insert(boot_pgdir, p, 0x100 + PGSIZE, PTE_W) == 0);
+    assert(page_insert(boot_pgdir, p, 0x100 + PGSIZE, PTE_RW) == 0);
     assert(page_ref(p) == 2);
 
     const char *str = "ucore: Hello world!!";
@@ -455,6 +464,7 @@ check_boot_pgdir(void) {
     cprintf("check_boot_pgdir() succeeded!\n");
 }
 
+/*
 //perm2str - use string 'u,r,w,-' to present the permission
 static const char *
 perm2str(int perm) {
