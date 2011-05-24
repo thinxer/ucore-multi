@@ -35,14 +35,13 @@ kern_init(void) {
     clock_init();
 
     // enable interrupts
-    // not working yet
-    // intr_enable();
+    intr_enable();
 
     atomic_t a;
     atomic_set(&a, 7);
     cprintf("a: %d\n", atomic_read(&a));    // a: 7
 
-    long b=16;
+    unsigned long b=16;
     set_bit(1, &b);
     cprintf("b: %d\n", b);  // b: 18
 

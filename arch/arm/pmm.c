@@ -1,5 +1,4 @@
 #include <types.h>
-#include <arch/x86.h>
 #include <stdio.h>
 #include <string.h>
 #include <arch/mmu.h>
@@ -9,28 +8,6 @@
 #include <irqflags.h>
 #include <error.h>
 
-/* *
- * Task State Segment:
- *
- * The TSS may reside anywhere in memory. A special segment register called
- * the Task Register (TR) holds a segment selector that points a valid TSS
- * segment descriptor which resides in the GDT. Therefore, to use a TSS
- * the following must be done in function gdt_init:
- *   - create a TSS descriptor entry in GDT
- *   - add enough information to the TSS in memory as needed
- *   - load the TR register with a segment selector for that segment
- *
- * There are several fileds in TSS for specifying the new stack pointer when a
- * privilege level change happens. But only the fields SS0 and ESP0 are useful
- * in our os kernel.
- *
- * The field SS0 contains the stack segment selector for CPL = 0, and the ESP0
- * contains the new ESP value for CPL = 0. When an interrupt happens in protected
- * mode, the x86 CPU will look in the TSS for SS0 and ESP0 and load their value
- * into SS and ESP respectively.
- * */
-static struct taskstate ts = {0};
-
 // virtual address of physicall page array
 struct Page *pages;
 // amount of physical memory (in pages)
@@ -39,7 +16,7 @@ size_t npage = 0;
 // virtual address of boot-time page directory
 pde_t *boot_pgdir = NULL;
 // physical address of boot-time page directory
-uintptr_t boot_cr3;
+uintptr_t boot_pgdir_p;
 
 // physical memory management
 const struct pmm_manager *pmm_manager;
@@ -60,78 +37,9 @@ const struct pmm_manager *pmm_manager;
 pte_t * const vpt = (pte_t *)VPT;
 pde_t * const vpd = (pde_t *)PGADDR(PDX(VPT), PDX(VPT), 0);
 
-/* *
- * Global Descriptor Table:
- *
- * The kernel and user segments are identical (except for the DPL). To load
- * the %ss register, the CPL must equal the DPL. Thus, we must duplicate the
- * segments for the user and the kernel. Defined as follows:
- *   - 0x0 :  unused (always faults -- for trapping NULL far pointers)
- *   - 0x8 :  kernel code segment
- *   - 0x10:  kernel data segment
- *   - 0x18:  user code segment
- *   - 0x20:  user data segment
- *   - 0x28:  defined for tss, initialized in gdt_init
- * */
-static struct segdesc gdt[] = {
-    SEG_NULL,
-    [SEG_KTEXT] = SEG(STA_X | STA_R, 0x0, 0xFFFFFFFF, DPL_KERNEL),
-    [SEG_KDATA] = SEG(STA_W, 0x0, 0xFFFFFFFF, DPL_KERNEL),
-    [SEG_UTEXT] = SEG(STA_X | STA_R, 0x0, 0xFFFFFFFF, DPL_USER),
-    [SEG_UDATA] = SEG(STA_W, 0x0, 0xFFFFFFFF, DPL_USER),
-    [SEG_TSS]   = SEG_NULL,
-};
-
-static struct pseudodesc gdt_pd = {
-    sizeof(gdt) - 1, (uintptr_t)gdt
-};
-
 static void check_alloc_page(void);
 static void check_pgdir(void);
 static void check_boot_pgdir(void);
-
-/* *
- * lgdt - load the global descriptor table register and reset the
- * data/code segement registers for kernel.
- * */
-static inline void
-lgdt(struct pseudodesc *pd) {
-    asm volatile ("lgdt (%0)" :: "r" (pd));
-    asm volatile ("movw %%ax, %%gs" :: "a" (USER_DS));
-    asm volatile ("movw %%ax, %%fs" :: "a" (USER_DS));
-    asm volatile ("movw %%ax, %%es" :: "a" (KERNEL_DS));
-    asm volatile ("movw %%ax, %%ds" :: "a" (KERNEL_DS));
-    asm volatile ("movw %%ax, %%ss" :: "a" (KERNEL_DS));
-    // reload cs
-    asm volatile ("ljmp %0, $1f\n 1:\n" :: "i" (KERNEL_CS));
-}
-
-/* *
- * load_esp0 - change the ESP0 in default task state segment,
- * so that we can use different kernel stack when we trap frame
- * user to kernel.
- * */
-void
-load_esp0(uintptr_t esp0) {
-    ts.ts_esp0 = esp0;
-}
-
-/* gdt_init - initialize the default GDT and TSS */
-static void
-gdt_init(void) {
-    // set boot kernel stack and default SS0
-    load_esp0((uintptr_t)bootstacktop);
-    ts.ts_ss0 = KERNEL_DS;
-
-    // initialize the TSS filed of the gdt
-    gdt[SEG_TSS] = SEGTSS(STS_T32A, (uintptr_t)&ts, sizeof(ts), DPL_KERNEL);
-
-    // reload all segment registers
-    lgdt(&gdt_pd);
-
-    // load the TSS
-    ltr(GD_TSS);
-}
 
 //init_pmm_manager - initialize a pmm_manager instance
 static void
@@ -190,6 +98,8 @@ page_init(void) {
     struct e820map *memmap = (struct e820map *)(0x8000 + KERNBASE);
     uint64_t maxpa = 0;
 
+    init_physical_memory_map(memmap);
+
     cprintf("e820map:\n");
     int i;
     for (i = 0; i < memmap->nr_map; i ++) {
@@ -197,18 +107,21 @@ page_init(void) {
         cprintf("  memory: %08llx, [%08llx, %08llx], type = %d.\n",
                 memmap->map[i].size, begin, end - 1, memmap->map[i].type);
         if (memmap->map[i].type == E820_ARM) {
-            if (maxpa < end && begin < KMEMSIZE) {
+            if (maxpa < end && begin < PKERNBASE + KMEMSIZE) {
                 maxpa = end;
             }
         }
     }
-    if (maxpa > KMEMSIZE) {
-        maxpa = KMEMSIZE;
+
+    if (maxpa > PKERNBASE + KMEMSIZE) {
+        maxpa = PKERNBASE + KMEMSIZE;
     }
+    cprintf("maxpa: %08llx\n", maxpa);
 
     extern char end[];
 
     npage = maxpa / PGSIZE;
+    cprintf("npage: %d\n", npage);
     pages = (struct Page *)ROUNDUP((void *)end, PGSIZE);
 
     for (i = 0; i < npage; i ++) {
@@ -216,6 +129,7 @@ page_init(void) {
     }
 
     uintptr_t freemem = PADDR((uintptr_t)pages + sizeof(struct Page) * npage);
+    cprintf("freemem: %08lx\n", freemem);
 
     for (i = 0; i < memmap->nr_map; i ++) {
         uint64_t begin = memmap->map[i].addr, end = begin + memmap->map[i].size;
@@ -223,8 +137,8 @@ page_init(void) {
             if (begin < freemem) {
                 begin = freemem;
             }
-            if (end > KMEMSIZE) {
-                end = KMEMSIZE;
+            if (end > PKERNBASE + KMEMSIZE) {
+                end = PKERNBASE + KMEMSIZE;
             }
             if (begin < end) {
                 begin = ROUNDUP(begin, PGSIZE);
@@ -237,18 +151,25 @@ page_init(void) {
     }
 }
 
-static void
-enable_paging(void) {
-    lcr3(boot_cr3);
+void
+enable_paging() {
+	asm (
+		"mcr p15,0,%0,c2,c0,0\n"    /* set base address of page table*/
+		"mvn r0,#0\n"
+		"mcr p15,0,r0,c3,c0,0\n"    /* enable all region access*/
 
-    // turn on paging
-    uint32_t cr0 = rcr0();
-    cr0 |= CR0_PE | CR0_PG | CR0_AM | CR0_WP | CR0_NE | CR0_TS | CR0_EM | CR0_MP;
-    cr0 &= ~(CR0_TS | CR0_EM);
-    lcr0(cr0);
+		"mov r0,#0x1\n"
+		"mcr p15,0,r0,c1,c0,0\n"    /* set back to control register */
+		"mov r0,r0\n"
+		"mov r0,r0\n"
+		"mov r0,r0\n"
+		:
+		: "r" (boot_pgdir_p)
+		:"r0"
+	);
 }
 
-//boot_map_segment - setup&enable the paging mechanism
+// setup & enable the paging mechanism
 // parameters
 //  la:   linear address of this memory need to map (after x86 segment map)
 //  size: memory size
@@ -257,29 +178,32 @@ enable_paging(void) {
 static void
 boot_map_segment(pde_t *pgdir, uintptr_t la, size_t size, uintptr_t pa, uint32_t perm) {
     assert(PGOFF(la) == PGOFF(pa));
-    size_t n = ROUNDUP(size + PGOFF(la), PGSIZE) / PGSIZE;
     la = ROUNDDOWN(la, PGSIZE);
     pa = ROUNDDOWN(pa, PGSIZE);
-    for (; n > 0; n --, la += PGSIZE, pa += PGSIZE) {
+    for (; size > 0; size -= 1<<PTXSHIFT, la += 1<<PTXSHIFT, pa += 1<<PTXSHIFT) {
         pte_t *ptep = get_pte(pgdir, la, 1);
         assert(ptep != NULL);
         *ptep = pa | PTE_P | perm;
     }
 }
 
-// boot_alloc_page - allocate one page using pmm->alloc_pages(1)
-//
-// return value: the kernel virtual address of this allocated page
-//
-// note: this function is used to get the memory for PDT (Page Directory Table)
-//       & PT (Page Table)
+/**
+ * allocate pages for boot pgdir using pmm->alloc_pages
+ *
+ * note: this function is used to get the memory for PDT (Page Directory Table)
+ *       & PT (Page Table)
+ *
+ * @return the kernel virtual address of this allocated page
+ */
 static void *
 boot_alloc_page(void) {
-    struct Page *p = alloc_page();
-    if (p == NULL) {
+    struct Page *p;
+    // XXX size
+    p = alloc_pages(8);
+    if (p == NULL)
         panic("boot_alloc_page failed.\n");
-    }
-    return page2kva(p);
+    // XXX hacky to get an 16k align. need a better method.
+    return (ROUNDUP(page2kva(p), 1<<14));
 }
 
 // pmm_init - setup a pmm to manage physical memory, build PDT&PT to setup
@@ -288,7 +212,7 @@ boot_alloc_page(void) {
 void
 pmm_init(void) {
     // We need to alloc/free the physical memory (granularity is 4KB or other
-    // size).  So a framework of physical memory manager (struct pmm_manager) is
+    // size).  So a framework of physical memory manager (struct pmm_manager)is
     // defined in pmm.h First we should init a physical memory manager (pmm)
     // based on the framework.  Then pmm can alloc/free the physical memory.
     // Now the first_fit/best_fit/worst_fit/buddy_system pmm are available.
@@ -303,41 +227,45 @@ pmm_init(void) {
 
     // create boot_pgdir, an initial page directory(Page Directory Table, PDT)
     boot_pgdir = boot_alloc_page();
-    memset(boot_pgdir, 0, PGSIZE);
-    boot_cr3 = PADDR(boot_pgdir);
+    memset(boot_pgdir, 0, 4 * PGSIZE);
+    cprintf("pgdir is at: %08lx\n", boot_pgdir);
+    boot_pgdir_p = PADDR(boot_pgdir);
+    cprintf("pgdir is at (p): %08lx\n", boot_pgdir_p);
 
-    check_pgdir();
+    // check_pgdir();
 
     static_assert(KERNBASE % PTSIZE == 0 && KERNTOP % PTSIZE == 0);
 
     // recursively insert boot_pgdir in itself to form a virtual page table at
     // virtual address VPT
-    boot_pgdir[PDX(VPT)] = PADDR(boot_pgdir) | PTE_P | PTE_W;
+    // boot_pgdir[PDX(VPT)] = PADDR(boot_pgdir) | PTE_P | PTE_W;
 
-    // map all physical memory to linear memory with base linear addr KERNBASE
-    // linear_addr KERNBASE~KERNBASE+KMEMSIZE = phy_addr 0~KMEMSIZE. But
-    // shouldn't use this map until enable_paging() & gdt_init() finished.
-    boot_map_segment(boot_pgdir, KERNBASE, KMEMSIZE, 0, PTE_W);
+    cprintf("mapping initial pages... ");
+    // Kernel
+    boot_map_segment(boot_pgdir, KERNBASE, KMEMSIZE, PKERNBASE, PTE_RW);
+    // IO
+    boot_map_segment(boot_pgdir, 0x48000000, 0x18000000, 0x48000000, PTE_RW);
+    // intr
+    boot_map_segment(boot_pgdir, 0x0, PGSIZE, 0, PTE_RW);
+    cprintf("done!\n");
 
     // temporary map:
     // virtual_addr 3G~3G+4M = linear_addr 0~4M = linear_addr 3G~3G+4M = phy_addr 0~4M
-    boot_pgdir[0] = boot_pgdir[PDX(KERNBASE)];
+    // boot_pgdir[0] = boot_pgdir[PDX(KERNBASE)];
 
+    cprintf("enabling paging... ");
     enable_paging();
 
-    // Reload gdt (third time,the last time) to map all physical memory
-    // virtual_addr 0~4G=liear_addr 0~4G then set kernel stack(ss:esp) in TSS,
-    // setup TSS in gdt, load TSS
-    gdt_init();
+    cprintf("success!\n");
 
     // disable the map of virtual_addr 0~4M
-    boot_pgdir[0] = 0;
+    // boot_pgdir[0] = 0;
 
     // Now the basic virtual memory map(see memalyout.h) is established.
     // Check the correctness of the basic virtual memory map.
-    check_boot_pgdir();
+    // check_boot_pgdir();
 
-    print_pgdir();
+    // print_pgdir();
 }
 
 //get_pte - get pte and return the kernel virtual address of this pte for la
@@ -358,7 +286,7 @@ get_pte(pde_t *pgdir, uintptr_t la, bool create) {
         set_page_ref(page, 1);
         uintptr_t pa = page2pa(page);
         memset(KADDR(pa), 0, PGSIZE);
-        *pdep = pa | PTE_U | PTE_W | PTE_P;
+        *pdep = pa | PDE_FINE | PTE_P;
     }
     return &((pte_t *)KADDR(PDE_ADDR(*pdep)))[PTX(la)];
 }
@@ -378,7 +306,7 @@ get_page(pde_t *pgdir, uintptr_t la, pte_t **ptep_store) {
 
 //page_remove_pte - free an Page sturct which is related linear address la
 //                - and clean(invalidate) pte which is related linear address la
-//note: PT is changed, so the TLB need to be invalidate 
+//note: PT is changed, so the TLB need to be invalidate
 static inline void
 page_remove_pte(pde_t *pgdir, uintptr_t la, pte_t *ptep) {
     if (*ptep & PTE_P) {
@@ -433,9 +361,9 @@ page_insert(pde_t *pgdir, struct Page *page, uintptr_t la, uint32_t perm) {
 // edited are the ones currently in use by the processor.
 void
 tlb_invalidate(pde_t *pgdir, uintptr_t la) {
-    if (rcr3() == PADDR(pgdir)) {
-        invlpg((void *)la);
-    }
+    asm (
+    "mcr p15,0,r0,c8,c7,0;"
+    );
 }
 
 static void
@@ -444,6 +372,7 @@ check_alloc_page(void) {
     cprintf("check_alloc_page() succeeded!\n");
 }
 
+/*
 static void
 check_pgdir(void) {
     assert(npage <= KMEMSIZE / PGSIZE);
@@ -588,4 +517,4 @@ print_pgdir(void) {
     }
     cprintf("--------------------- END ---------------------\n");
 }
-
+*/

@@ -1,5 +1,5 @@
 # target architecture
-TARGET_ARCH := x86
+TARGET_ARCH := arm
 # target machine
 TARGET_MACH :=
 
@@ -8,11 +8,13 @@ ifeq ($(TARGET_ARCH), arm)
 	ifeq ($(TARGET_MACH),)
 		TARGET_MACH := s3c2410
 	endif
+	# default prefix for GNU/Linux x86 host
 	TARGET_PREFIX:= arm-elf-
 else ifeq ($(TARGET_ARCH), x86)
 	ifeq ($(TARGET_MACH),)
 		TARGET_MACH := generic
 	endif
+	# default prefix for GNU/Linux x86 host
 	TARGET_PREFIX :=
 endif
 
@@ -74,9 +76,9 @@ DIRNAME		:= dirname
 
 # link include directories
 .PHONY: prepare
-prepare:
-	cd include && ln -s ../$(ARCH_DIR)/include arch
-	cd include && ln -s ../$(MACH_DIR)/include mach
+prepare: clean
+	@cd include && ln -s ../$(ARCH_DIR)/include arch
+	@cd include && ln -s ../$(MACH_DIR)/include mach
 
 
 .PHONY: boot
@@ -173,7 +175,7 @@ gdb:
 clean:
 	@$(RM) -r obj
 	@$(RM) -r bin
-	#@$(RM) include/arch
-	#@$(RM) include/mach
+	@$(RM) include/arch
+	@$(RM) include/mach
 
 #  vim: set noet ts=4 sw=4 tw=0 :

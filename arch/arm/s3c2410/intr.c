@@ -2,34 +2,25 @@
 #include <stdio.h>
 #include <types.h>
 #include <string.h>
+#include <irqflags.h>
 
 void
 intr_init(void) {
     // copy interrupt vectors to 0x0
-    extern char  __intr_vector_start, __intr_vector_end;
+    extern char  __intr_vector_start[], __intr_vector_end[];
     memcpy( (void*)0,
-            (void*)&__intr_vector_start,
-            &__intr_vector_end - &__intr_vector_start);
+            (void*)__intr_vector_start,
+            __intr_vector_end - __intr_vector_start);
 }
 
 void
 intr_enable(void) {
-	asm volatile (
-		"mrs r4,cpsr;"
-		"bic r4,r4,#0x80;"
-		"msr cpsr,r4;"
-		:::"r4"
-	);
+    arch_local_irq_enable();
 }
 
 void
 intr_disable(void) {
-	asm volatile (
-		"mrs r4,cpsr;"
-		"orr r4,r4,#0x80;"
-		"msr cpsr,r4;"
-		:::"r4"
-	);
+    arch_local_irq_disable();
 }
 
 void

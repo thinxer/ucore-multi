@@ -34,10 +34,10 @@ typedef uintptr_t size_t;
 /* used for page numbers */
 typedef size_t ppn_t;
 
-/* *
+/**
  * Rounding operations (efficient when n is a power of 2)
  * Round down to the nearest multiple of n
- * */
+ */
 #define ROUNDDOWN(a, n) ({                                          \
             size_t __a = (size_t)(a);                               \
             (typeof(a))(__a - __a % (n));                           \
@@ -56,7 +56,7 @@ typedef size_t ppn_t;
     ((size_t)(&((type *)0)->member))
 
 /**
- * to_struct - get the struct from a ptr
+ * get the struct from a ptr
  * @param ptr       a struct pointer of member
  * @param type      the type of the struct this is embedded in
  * @param member    the name of the member within the struct
