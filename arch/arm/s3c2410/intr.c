@@ -1,4 +1,4 @@
-#include <mach/intr.h>
+#include <arch/intr.h>
 #include <stdio.h>
 #include <types.h>
 #include <string.h>
@@ -6,11 +6,8 @@
 
 void
 intr_init(void) {
-    // copy interrupt vectors to 0x0
-    extern char  __intr_vector_start[], __intr_vector_end[];
-    memcpy( (void*)0,
-            (void*)__intr_vector_start,
-            __intr_vector_end - __intr_vector_start);
+    // The interrupt table has been mapped to 0x0 in pmm_init, no need to do
+    // anything here.
 }
 
 void

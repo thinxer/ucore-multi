@@ -18,6 +18,8 @@
 .equ UND_MOD,			0x1b
 
 .code 32
+.align 4
+.section .interrupt
 
 __intr_vector_start:
 

@@ -2,18 +2,14 @@ OUTPUT_ARCH(arm)
 ENTRY(_kern_init)
 
 SECTIONS {
-    . = 0x0;
-
-    /* interrupt */
-    .interrupt : {
-        *(.interrupt)
-    }
 
     /* Load the kernel at this address: "." means the current address */
     . = 0x31000000;
 
     .text : {
         *(.text .stub .text.* .gnu.linkonce.t.*)
+        . = ALIGN(0x1000);
+        *(.interrupt)
     }
 
     PROVIDE(etext = .); /* Define the 'etext' symbol to this value */

@@ -39,7 +39,6 @@ pde_t * const vpd = (pde_t *)PGADDR(PDX(VPT), PDX(VPT), 0);
 
 static void check_alloc_page(void);
 static void check_pgdir(void);
-static void check_boot_pgdir(void);
 
 //init_pmm_manager - initialize a pmm_manager instance
 static void
@@ -238,32 +237,24 @@ pmm_init(void) {
 
     // recursively insert boot_pgdir in itself to form a virtual page table at
     // virtual address VPT
-    boot_pgdir[PDX(VPT)] = PADDR(boot_pgdir) | PTE_P | PTE_RW;
+    // boot_pgdir[PDX(VPT)] = PADDR(boot_pgdir) | PTE_P | PTE_RW;
 
     cprintf("mapping initial pages... ");
+
     // Kernel
     boot_map_segment(boot_pgdir, KERNBASE, KMEMSIZE, PKERNBASE, PTE_RW);
     // IO
     boot_map_segment(boot_pgdir, 0x48000000, 0x18000000, 0x48000000, PTE_RW);
-    // intr
-    boot_map_segment(boot_pgdir, 0x0, PGSIZE, 0, PTE_RW);
-    cprintf("done!\n");
+    // map intr section to 0x0
+    extern int  __intr_vector_start[];
+    boot_map_segment(boot_pgdir, 0x0, PGSIZE, (uintptr_t) PADDR(__intr_vector_start), PTE_RW);
 
-    // temporary map:
-    // virtual_addr 3G~3G+4M = linear_addr 0~4M = linear_addr 3G~3G+4M = phy_addr 0~4M
-    // boot_pgdir[0] = boot_pgdir[PDX(KERNBASE)];
+    cprintf("done!\n");
 
     cprintf("enabling paging... ");
     enable_paging();
 
     cprintf("success!\n");
-
-    // disable the map of virtual_addr 0~4M
-    // boot_pgdir[0] = 0;
-
-    // Now the basic virtual memory map(see memalyout.h) is established.
-    // Check the correctness of the basic virtual memory map.
-    check_boot_pgdir();
 
     // print_pgdir();
 }
@@ -427,41 +418,6 @@ check_pgdir(void) {
     boot_pgdir[0] = 0;
 
     cprintf("check_pgdir() succeeded!\n");
-}
-
-static void
-check_boot_pgdir(void) {
-    pte_t *ptep;
-    int i;
-    for (i = 0; i < npage; i += PGSIZE) {
-        assert((ptep = get_pte(boot_pgdir, (uintptr_t)KADDR(PKERNBASE + i), 0)) != NULL);
-        assert(PTE_ADDR(*ptep) == (PKERNBASE + i));
-    }
-
-    assert(PDE_ADDR(boot_pgdir[PDX(VPT)]) == PADDR(boot_pgdir));
-
-    // No need for this on ARM.
-    // assert(boot_pgdir[0] == 0);
-
-    struct Page *p;
-    p = alloc_page();
-    assert(page_insert(boot_pgdir, p, 0x100, PTE_RW) == 0);
-    assert(page_ref(p) == 1);
-    assert(page_insert(boot_pgdir, p, 0x100 + PGSIZE, PTE_RW) == 0);
-    assert(page_ref(p) == 2);
-
-    const char *str = "ucore: Hello world!!";
-    strcpy((void *)0x100, str);
-    assert(strcmp((void *)0x100, (void *)(0x100 + PGSIZE)) == 0);
-
-    *(char *)(page2kva(p) + 0x100) = '\0';
-    assert(strlen((const char *)0x100) == 0);
-
-    free_page(p);
-    free_page(pa2page(PDE_ADDR(boot_pgdir[0])));
-    boot_pgdir[0] = 0;
-
-    cprintf("check_boot_pgdir() succeeded!\n");
 }
 
 /*
