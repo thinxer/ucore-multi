@@ -10,8 +10,7 @@ using an ARM920T core.
 
 #running
 
-You need gcc 4.4 or 4.5 to compile for the x86 architecture. gcc 4.6 is known
-not to work.
+A recent version of gcc should work just well. My gcc version is 4.6.0.
 
     make TARGET_ARCH=x86 prepare
     make TARGET_ARCH=x86 image
@@ -33,16 +32,20 @@ Compile for the ARM architecture:
 * Simple bootloader works, which can load elf kernel from memory.
 * Output to UART works. cprintf works.
 * Interrupt(IRQ) works.
+* PMM works.
+* Slab works.
 
 #todo
 
-* Implement memory management system.
+* Implement VMM.
 * Implement syscall.
 * Input from UART.
-* Rewrite Makefile, make it DRY and more like original ucore Makefile.
 
 #acknowledgment
+
+Hail all open source software developers.
 
 * Most code is taken from the ucore project, of course.
 * Boot and interrupt code is inspired by david leels <davidontech@gmail.com>.
 * div64 code for arm is taken from the Linux kernel.
+* Software div/mode code is taken from libgcc.
