@@ -39,6 +39,8 @@ struct Page {
 #define PG_reserved                 0
 // the member 'property' is valid
 #define PG_property                 1
+// page frame is included in a slab
+#define PG_slab                     2
 
 /* Helper methods. */
 #define SetPageReserved(page)       set_bit(PG_reserved, &((page)->flags))
@@ -47,6 +49,9 @@ struct Page {
 #define SetPageProperty(page)       set_bit(PG_property, &((page)->flags))
 #define ClearPageProperty(page)     clear_bit(PG_property, &((page)->flags))
 #define PageProperty(page)          test_bit(PG_property, &((page)->flags))
+#define SetPageSlab(page)           set_bit(PG_slab, &((page)->flags))
+#define ClearPageSlab(page)         clear_bit(PG_slab, &((page)->flags))
+#define PageSlab(page)              test_bit(PG_slab, &((page)->flags))
 
 static inline int
 page_ref(struct Page *page) {

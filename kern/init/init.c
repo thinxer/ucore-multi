@@ -7,6 +7,7 @@
 #include <atomic.h>
 #include <bitops.h>
 #include <pmm.h>
+#include <slab.h>
 
 /* Before calling into kern_init, we must make sure the memory is properly
  * mapped. This is because the kernel is compiled against KERNBASE but it's not
@@ -20,18 +21,19 @@ kern_init(void) {
     extern char edata[], end[];
     memset(edata, 0, end - edata);
 
-    // init console
+    // console
     cons_init();
 
     cprintf("initializing\n");
 
-    // pmm init
+    // memory management
     pmm_init();
+    slab_init();
 
-    // init interrupts
+    // interrupts
     intr_init();
 
-    // init timer
+    // timer
     clock_init();
 
     // enable interrupts
@@ -45,8 +47,8 @@ kern_init(void) {
     set_bit(1, &b);
     cprintf("b: %d\n", b);  // b: 18
 
-    // init message
-    cprintf("\n(THU.CST) ucore(arm)\n");
+    // welcome message
+    cprintf("\n(THU.CST) ucore\n");
 
     // do nothing
     while(1);
