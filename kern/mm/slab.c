@@ -492,6 +492,7 @@ check_slab(void) {
     kmem_cache_t *cachep0, *cachep1;
 
     cachep0 = slab_cache;
+    cachep1 = NULL;
     assert(cachep0->objsize == 32 && cachep0->num > 1 && !cachep0->off_slab);
     assert((v0 = kmalloc(16)) != NULL);
 
