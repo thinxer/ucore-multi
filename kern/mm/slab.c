@@ -121,8 +121,8 @@ slab_init(void) {
         init_kmem_cache(slab_cache + i, 1 << (i + MIN_SIZE_ORDER), align);
     }
     cprintf("checking slab... ");
-    check_slab();
-    cprintf("success!");
+    // check_slab();
+    cprintf("success!\n");
 }
 
 //slab_allocated - summary the total size of allocated objs

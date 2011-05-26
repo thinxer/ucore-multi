@@ -8,6 +8,7 @@
 #include <bitops.h>
 #include <pmm.h>
 #include <slab.h>
+#include <vmm.h>
 
 /* Before calling into kern_init, we must make sure the memory is properly
  * mapped. This is because the kernel is compiled against KERNBASE but it's not
@@ -26,12 +27,15 @@ kern_init(void) {
 
     cprintf("initializing\n");
 
-    // memory management
+    // physical memory management
     pmm_init();
     slab_init();
 
     // interrupts
     intr_init();
+
+    // virtual memory management
+    vmm_init();
 
     // timer
     clock_init();
