@@ -97,7 +97,7 @@ page_init(void) {
     struct e820map *memmap = (struct e820map *)(0x8000 + KERNBASE);
     uint64_t maxpa = 0;
 
-    init_physical_memory_map(memmap);
+    fill_physical_memory_map(memmap);
 
     cprintf("e820map:\n");
     int i;

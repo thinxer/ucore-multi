@@ -100,9 +100,9 @@ obj/boot/boot.o: $(MACH_DIR)/boot/bootasm.S $(MACH_DIR)/boot/bootmain.c
 .PHONY: kernel
 kernel: bin/kernel
 
-KERN_OBJS 	:=	obj/kern/init/init.o \
-				obj/kern/debug/panic.o \
-				obj/kern/mm/buddy_pmm.o \
+KERN_OBJS 	:=	obj/kern/init/init.o\
+				obj/kern/debug/panic.o\
+				obj/kern/mm/buddy_pmm.o\
 				obj/kern/mm/slab.o
 LIB_OBJS	:=	obj/lib/printfmt.o\
 				obj/lib/string.o\
@@ -110,7 +110,7 @@ LIB_OBJS	:=	obj/lib/printfmt.o\
 				obj/lib/stdio.o\
 				obj/lib/rand.o\
 				obj/lib/rb_tree.o
-ARCH_OBJS 	:=	obj/$(MACH_DIR)/clock.o \
+ARCH_OBJS 	:=	obj/$(MACH_DIR)/clock.o\
 				obj/$(MACH_DIR)/console.o \
 				obj/$(MACH_DIR)/intr.o \
 				obj/$(ARCH_DIR)/pmm.o
@@ -118,7 +118,8 @@ ASM_OBJS	:=	obj/$(MACH_DIR)/init.o\
 				obj/$(MACH_DIR)/intr_vector.o
 
 ifeq ($(TARGET_ARCH), arm)
-ARCH_OBJS	+=	obj/$(ARCH_DIR)/lib/div0.o
+ARCH_OBJS	+=	obj/$(ARCH_DIR)/lib/div0.o\
+				obj/$(MACH_DIR)/memmap.o
 ASM_OBJS	+=	obj/$(ARCH_DIR)/lib/_umodsi3.o \
 				obj/$(ARCH_DIR)/lib/_modsi3.o \
 				obj/$(ARCH_DIR)/lib/_udivsi3.o \

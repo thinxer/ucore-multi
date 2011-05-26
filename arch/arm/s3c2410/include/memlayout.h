@@ -4,34 +4,7 @@
 /**
  * This file contains the definitions for memory management in our OS for the
  * arm architecture.
- * */
-
-/* *
- * Virtual memory map:                                          Permissions
- *                                                              kernel/user
- *
- *     4G ------------------> +---------------------------------+
- *                            |                                 |
- *                            |         Empty Memory (*)        |
- *                            |                                 |
- *                            +---------------------------------+ 0xFB000000
- *                            |   Cur. Page Table (Kern, RW)    | RW/-- PTSIZE
- *     VPT -----------------> +---------------------------------+ 0xFAC00000
- *                            |        Invalid Memory (*)       | --/--
- *     KERNTOP -------------> +---------------------------------+ 0xF8000000
- *                            |                                 |
- *                            |    Remapped Physical Memory     | RW/-- KMEMSIZE
- *                            |                                 |
- *     KERNBASE ------------> +---------------------------------+ 0xC0000000
- *                            |                                 |
- *                            |                                 |
- *                            |                                 |
- *                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * (*) Note: The kernel ensures that "Invalid Memory" is *never* mapped.
- *     "Empty Memory" is normally unmapped, but user programs may map pages
- *     there if desired.
- *
- * */
+ */
 
 // Where the kernel will be loaded to the memory.
 // Unlike X86, which would always be 0x0, PKERNBASE differs on different ARM
@@ -81,16 +54,7 @@ struct e820map {
     } __attribute__((packed)) map[E820MAX];
 };
 
-static void
-init_physical_memory_map(struct e820map* memmap) {
-    memmap->nr_map = 2;
-    memmap->map[0].addr = 0x00000000;
-    memmap->map[0].size = 0x30000000;
-    memmap->map[0].type = E820_ARR;
-    memmap->map[1].addr = 0x30000000;
-    memmap->map[1].size = 0x01800000;
-    memmap->map[1].type = E820_ARM;
-}
+void fill_physical_memory_map(struct e820map* memmap);
 
 #endif /* !__ASSEMBLER__ */
 
