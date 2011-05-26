@@ -1,8 +1,11 @@
-#include <mach/intr.h>
+#include <assert.h>
 #include <stdio.h>
 #include <types.h>
 #include <string.h>
+#include <mach/intr.h>
 #include <irqflags.h>
+#include <arch/mmu.h>
+#include <vmm.h>
 
 void
 intr_init(void) {
@@ -50,4 +53,31 @@ intr_dispatch(void) {
 
     // disable interrupt and prepare to return
 	intr_disable();
+}
+
+void
+intr_data_abort(void) {
+    extern struct mm_struct *check_mm_struct;
+    unsigned long fsr;
+    uint32_t code;
+    uintptr_t far;
+    read_fsr(fsr);
+    read_far(far);
+    cprintf("pgfault@%08lx, type: %ld\n", far, fsr);
+    // TODO need further investigation
+    if (fsr & 0x5) {
+        code = 2;
+    } else if (fsr & 0xd) {
+        code = 1;
+    } else {
+        panic("unknown pgfault type.\n");
+    }
+    if (check_mm_struct != NULL) {
+        int ret = do_pgfault(check_mm_struct, code, far);
+        if (ret != 0) {
+            panic("do_pgfault failed! code: %d\n", ret);
+        }
+        return;
+    }
+    panic("unhandled page fault.\n");
 }

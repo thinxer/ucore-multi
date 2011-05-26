@@ -39,7 +39,7 @@
 
 #define PGSIZE          4096                    // bytes mapped by a page
 #define PGSHIFT         12                      // log2(PGSIZE)
-#define PTSIZE          (PGSIZE * NPTEENTRY)    // bytes mapped by a page directory entry
+#define PTSIZE          (PGSIZE * NPTEENTRY / 4)    // bytes mapped by a page directory entry
 #define PTSHIFT         20                      // log2(PTSIZE)
 
 #define PTXSHIFT        10                      // offset of PTX in a linear address
@@ -52,5 +52,15 @@
 #define PTE_P           (1<<1)
 #define PTE_U           (1<<5 | 1<<7 | 1<<9 | 1<<11)
 #define PTE_W           (1<<4 | 1<<6 | 1<<8 | 1<<10)
+
+// read fault status register of cp15
+#define read_fsr(c5)        do { \
+	asm volatile ("mrc p15, 0, %0, c5, c0, 0;" :"=r" (c5)); \
+    } while (0);
+
+// read fault address register of cp15
+#define read_far(c6)        do { \
+	asm volatile ("mrc p15, 0, %0, c6, c0, 0;" :"=r" (c6)); \
+    } while (0);
 
 #endif /* !__ARM_MMU_H__ */

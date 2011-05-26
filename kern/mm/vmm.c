@@ -287,7 +287,9 @@ check_vma_struct(void) {
 
 struct mm_struct *check_mm_struct;
 
-// check_pgfault - check correctness of pgfault handler
+/**
+ * Check the correctness of pgfault handler.
+ */
 static void
 check_pgfault(void) {
     size_t nr_free_pages_store = nr_free_pages();
@@ -298,14 +300,20 @@ check_pgfault(void) {
 
     struct mm_struct *mm = check_mm_struct;
     pde_t *pgdir = mm->pgdir = boot_pgdir;
-    assert(pgdir[0] == 0);
 
-    struct vma_struct *vma = vma_create(0, PTSIZE, VM_WRITE);
+    // Find an empty address for testing.
+    uintptr_t base_addr = 0;
+    while (pgdir[base_addr])
+        base_addr ++;
+    cprintf("checking pgfault at addr: %08lx\n", base_addr * PTSIZE);
+
+    struct vma_struct *vma = vma_create(base_addr * PTSIZE,
+            base_addr * PTSIZE + PTSIZE, VM_WRITE);
     assert(vma != NULL);
 
     insert_vma_struct(mm, vma);
 
-    uintptr_t addr = 0x100;
+    uintptr_t addr = base_addr * PTSIZE + 0x100;
     assert(find_vma(mm, addr) == vma);
 
     int i, sum = 0;
@@ -320,7 +328,7 @@ check_pgfault(void) {
 
     page_remove(pgdir, ROUNDDOWN(addr, PGSIZE));
     free_page(pa2page(pgdir[0]));
-    pgdir[0] = 0;
+    pgdir[base_addr] = 0;
 
     mm->pgdir = NULL;
     mm_destroy(mm);
@@ -332,7 +340,7 @@ check_pgfault(void) {
     cprintf("check_pgfault() succeeded!\n");
 }
 
-// do_pgfault - interrupt handler to process the page fault execption
+// interrupt handler to process the page fault exception
 int
 do_pgfault(struct mm_struct *mm, uint32_t error_code, uintptr_t addr) {
     int ret = -E_INVAL;

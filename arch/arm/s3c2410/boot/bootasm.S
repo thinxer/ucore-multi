@@ -48,7 +48,7 @@ __intr_vector_end:
 .equ ABT_MOD,			0x17
 .equ UND_MOD,			0x1b
 
-.equ MEM_SIZE,			0x800000
+.equ MEM_SIZE,			0x04000000
 .equ TEXT_BASE,			0x30000000
 
 .equ _SVC_STACK,		(TEXT_BASE+MEM_SIZE-4)

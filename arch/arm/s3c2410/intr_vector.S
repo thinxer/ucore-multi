@@ -1,11 +1,12 @@
-/* This file contains the interrupt vector.
- * __intr_vector_start and __intr_vector_end marks where the vector resides
- * after linking. This range should either be copied to 0x0 or be mapped
- * there.
+/**
+ * This file contains the interrupt vector.  __intr_vector_start and
+ * __intr_vector_end marks where the vector resides after linking. This range
+ * should either be copied to 0x0 or be mapped there.
  */
 .global __intr_vector_start
 .global __intr_vector_end
 .extern intr_dispatch
+.extern intr_data_abort
 
 /* TODO put this magic numbers into an include file. */
 .equ DISABLE_IRQ,		0x80
@@ -44,7 +45,7 @@ swi:
 prefetch_abort:
     .word	.
 data_abort:
-    .word	.
+    .word	abort_proc
 reserved:
     .word	.
 irq:
@@ -54,7 +55,8 @@ fiq:
 
 __intr_vector_end:
 
-/* irq procedure, which will call intr_dispatch.
+/**
+ * abort procedure, which will call intr_dispatch.
  */
 irq_proc:
 	sub lr,lr,#4
@@ -71,6 +73,29 @@ irq_proc:
 
     /* Return to the irq mode. */
     msr cpsr_c,#(DISABLE_IRQ|DISABLE_FIQ|IRQ_MOD)
+
+	ldmfd sp!,{r14}
+	msr spsr,r14
+	ldmfd sp!,{pc}^
+
+/**
+ * abort procedure, which will call intr_dispatch.
+ */
+abort_proc:
+	sub lr,lr,#8
+	stmfd sp!,{r14}
+	mrs lr,spsr
+	stmfd sp!,{r14}
+
+    /* Go into svc mode and responds to the interrupt. */
+    msr cpsr_c,#(DISABLE_IRQ|DISABLE_FIQ|SVC_MOD)
+
+	stmfd sp!,{r0-r3}
+	bl intr_data_abort
+	ldmfd sp!,{r0-r3}
+
+    /* Return to the abt mode. */
+    msr cpsr_c,#(DISABLE_IRQ|DISABLE_FIQ|ABT_MOD)
 
 	ldmfd sp!,{r14}
 	msr spsr,r14

@@ -7,6 +7,6 @@ fill_physical_memory_map(struct e820map* memmap) {
     memmap->map[0].size = 0x30000000;
     memmap->map[0].type = E820_ARR;
     memmap->map[1].addr = 0x30000000;
-    memmap->map[1].size = 0x01800000;
+    memmap->map[1].size = 0x03800000;
     memmap->map[1].type = E820_ARM;
 }
