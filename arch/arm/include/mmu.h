@@ -50,7 +50,7 @@
 #define PDE_P           (1<<4)
 // Really, this is not pte_p, but the flag for small page
 #define PTE_P           (1<<1)
-
-#define PTE_RW          0xFF0
+#define PTE_U           (1<<5 | 1<<7 | 1<<9 | 1<<11)
+#define PTE_W           (1<<4 | 1<<6 | 1<<8 | 1<<10)
 
 #endif /* !__ARM_MMU_H__ */

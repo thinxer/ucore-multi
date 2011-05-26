@@ -237,17 +237,17 @@ pmm_init(void) {
 
     // recursively insert boot_pgdir in itself to form a virtual page table at
     // virtual address VPT
-    // boot_pgdir[PDX(VPT)] = PADDR(boot_pgdir) | PTE_P | PTE_RW;
+    boot_pgdir[PDX(VPT)] = PADDR(boot_pgdir) | PTE_P | PTE_W;
 
     cprintf("mapping initial pages... ");
 
     // Kernel
-    boot_map_segment(boot_pgdir, KERNBASE, KMEMSIZE, PKERNBASE, PTE_RW);
+    boot_map_segment(boot_pgdir, KERNBASE, KMEMSIZE, PKERNBASE, PTE_W);
     // IO
-    boot_map_segment(boot_pgdir, 0x48000000, 0x18000000, 0x48000000, PTE_RW);
+    boot_map_segment(boot_pgdir, 0x48000000, 0x18000000, 0x48000000, PTE_W);
     // map intr section to 0x0
     extern int  __intr_vector_start[];
-    boot_map_segment(boot_pgdir, 0x0, PGSIZE, (uintptr_t) PADDR(__intr_vector_start), PTE_RW);
+    boot_map_segment(boot_pgdir, 0x0, PGSIZE, (uintptr_t) PADDR(__intr_vector_start), PTE_W);
 
     cprintf("done!\n");
 
@@ -259,13 +259,14 @@ pmm_init(void) {
     // print_pgdir();
 }
 
-//get_pte - get pte and return the kernel virtual address of this pte for la
-//        - if the PT contians this pte didn't exist, alloc a page for PT
-// parameter:
-//  pgdir:  the kernel virtual base address of PDT
-//  la:     the linear address need to map
-//  create: a logical value to decide if alloc a page for PT
-// return vaule: the kernel virtual address of this pte
+/* Get pte and return the kernel virtual address of this pte for la if the PT
+ * contians this pte didn't exist, alloc a page for PT.
+ *
+ * @param pgdir     the kernel virtual base address of PDT
+ * @param la        the linear address need to map
+ * @param create    a logical value to decide if alloc a page for PT
+ * @return          the kernel virtual address of this pte
+ */
 pte_t *
 get_pte(pde_t *pgdir, uintptr_t la, bool create) {
     pde_t *pdep = &pgdir[PDX(la)];
@@ -277,7 +278,7 @@ get_pte(pde_t *pgdir, uintptr_t la, bool create) {
         set_page_ref(page, 1);
         uintptr_t pa = page2pa(page);
         memset(KADDR(pa), 0, PGSIZE);
-        *pdep = pa | PDE_FINE | PTE_P;
+        *pdep = pa | PDE_FINE | PDE_P;
     }
     return &((pte_t *)KADDR(PDE_ADDR(*pdep)))[PTX(la)];
 }
@@ -305,7 +306,7 @@ page_remove_pte(pde_t *pgdir, uintptr_t la, pte_t *ptep) {
         if (page_ref_dec(page) == 0) {
             free_page(page);
         }
-        // XXX remove four enties together
+        // remove four enties together
         *ptep = 0;
         *(ptep+1) = 0;
         *(ptep+2) = 0;
@@ -323,14 +324,15 @@ page_remove(pde_t *pgdir, uintptr_t la) {
     }
 }
 
-//page_insert - build the map of phy addr of an Page with the linear addr la
-// paramemters:
-//  pgdir: the kernel virtual base address of PDT
-//  page:  the Page which need to map
-//  la:    the linear address need to map
-//  perm:  the permission of this Page which is setted in related pte
-// return value: always 0
-//note: PT is changed, so the TLB need to be invalidate 
+/* build the map of phy addr of an Page with the linear addr la
+ * note: PT is changed, so the TLB need to be invalidate
+ *
+ * @param pgdir the kernel virtual base address of PDT
+ * @param page  the Page which need to map
+ * @param la    the linear address need to map
+ * @param perm  the permission of this Page which is setted in related pte
+ * @return always 0
+ */
 int
 page_insert(pde_t *pgdir, struct Page *page, uintptr_t la, uint32_t perm) {
     pte_t *ptep = get_pte(pgdir, la, 1);
@@ -347,7 +349,7 @@ page_insert(pde_t *pgdir, struct Page *page, uintptr_t la, uint32_t perm) {
             page_remove_pte(pgdir, la, ptep);
         }
     }
-    // XXX ARM needs to keep 4 entries for a fine page.
+    // ARM fine+small pages needs to keep 4 entries for a fine page.
     *ptep = page2pa(page) | PTE_P | perm;
     *(ptep+1) = page2pa(page) | PTE_P | perm;
     *(ptep+2) = page2pa(page) | PTE_P | perm;
@@ -363,6 +365,20 @@ tlb_invalidate(pde_t *pgdir, uintptr_t la) {
     asm (
     "mcr p15,0,r0,c8,c7,0;"
     );
+}
+
+// call alloc_page & page_insert functions to allocate a page size memory &
+// setup an addr map pa<->la with linear address la and the PDT pgdir
+struct Page *
+pgdir_alloc_page(pde_t *pgdir, uintptr_t la, uint32_t perm) {
+    struct Page *page = alloc_page();
+    if (page != NULL) {
+        if (page_insert(pgdir, page, la, perm) != 0) {
+            free_page(page);
+            return NULL;
+        }
+    }
+    return page;
 }
 
 static void
@@ -391,11 +407,12 @@ check_pgdir(void) {
     assert(get_pte(boot_pgdir, PGSIZE, 0) == ptep);
 
     p2 = alloc_page();
-    assert(page_insert(boot_pgdir, p2, PGSIZE, PTE_RW) == 0);
+    assert(page_insert(boot_pgdir, p2, PGSIZE, PTE_U | PTE_W) == 0);
     assert((ptep = get_pte(boot_pgdir, PGSIZE, 0)) != NULL);
-    assert(*ptep & PTE_RW);
+    assert(*ptep & PTE_U);
+    assert(*ptep & PTE_W);
     // XXX what's the next line for?
-    // assert(boot_pgdir[0] & PTE_RW);
+    // assert(boot_pgdir[0] & PTE_U);
     assert(page_ref(p2) == 1);
 
     assert(page_insert(boot_pgdir, p1, PGSIZE, 0) == 0);
@@ -403,7 +420,7 @@ check_pgdir(void) {
     assert(page_ref(p2) == 0);
     assert((ptep = get_pte(boot_pgdir, PGSIZE, 0)) != NULL);
     assert(pa2page(*ptep) == p1);
-    assert((*ptep & PTE_RW) == 0);
+    assert((*ptep & PTE_U) == 0);
 
     page_remove(boot_pgdir, 0x0);
     assert(page_ref(p1) == 1);
