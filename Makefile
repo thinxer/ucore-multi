@@ -90,9 +90,12 @@ bin/boot.bin: obj/boot/boot.o
 
 obj/boot/boot.o: $(MACH_DIR)/boot/bootasm.S $(MACH_DIR)/boot/bootmain.c
 	@$(MKDIR) `$(DIRNAME) $@`
-	$(CC) $(CFLAGS) -Os -c -oobj/boot/bootmain.o $(MACH_DIR)/boot/bootmain.c
-	$(CC) $(CFLAGS) -Os -c -oobj/boot/bootasm.o $(MACH_DIR)/boot/bootasm.S
-	$(LD) $(LDFLAGS) -T$(MACH_DIR)/boot/boot.lds -o $@ obj/boot/bootasm.o obj/boot/bootmain.o
+	@echo cc $(MACH_DIR)/boot/bootmain.c
+	@$(CC) $(CFLAGS) -Os -c -oobj/boot/bootmain.o $(MACH_DIR)/boot/bootmain.c
+	@echo cc $(MACH_DIR)/boot/bootasm.S
+	@$(CC) $(CFLAGS) -Os -c -oobj/boot/bootasm.o $(MACH_DIR)/boot/bootasm.S
+	@echo ld obj/boot/bootasm.o obj/boot/bootmain.o
+	@$(LD) $(LDFLAGS) -T$(MACH_DIR)/boot/boot.lds -o $@ obj/boot/bootasm.o obj/boot/bootmain.o
 
 .PHONY: kernel
 kernel: bin/kernel
@@ -125,15 +128,18 @@ endif
 
 $(ASM_OBJS):obj/%.o:%.S
 	@$(MKDIR) `$(DIRNAME) $@`
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@echo cc $<
+	@$(CC) $(CFLAGS) -c -o $@ $<
 
 $(KERN_OBJS) $(LIB_OBJS) $(ARCH_OBJS):obj/%.o:%.c
 	@$(MKDIR) `$(DIRNAME) $@`
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@echo cc $<
+	@$(CC) $(CFLAGS) -c -o $@ $<
 
 bin/kernel: $(KERN_OBJS) $(LIB_OBJS) $(ARCH_OBJS) $(ASM_OBJS)
 	@$(MKDIR) `$(DIRNAME) $@`
-	$(LD) $(LDFLAGS) -T $(MACH_DIR)/kernel.lds -o $@ $^
+	@echo cc $<
+	@$(LD) $(LDFLAGS) -T $(MACH_DIR)/kernel.lds -o $@ $^
 
 .PHONY: image
 image: bin/ucore.img
