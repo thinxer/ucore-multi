@@ -34,8 +34,12 @@
 #define PDE_ADDR(pde)   PTE_ADDR(pde)
 
 /* page directory and page table constants */
-#define NPDEENTRY       4096                    // page directory entries per page directory
-#define NPTEENTRY       1024                    // page table entries per page table
+// page directory entries per page directory
+#define NPDEENTRY       4096
+// page table entries per page table
+#define NPTEENTRY       1024
+// page directroy size
+#define PGDIRSIZE       (sizeof(pde_t) * NPDEENTRY)
 
 #define PGSIZE          4096                    // bytes mapped by a page
 #define PGSHIFT         12                      // log2(PGSIZE)
@@ -52,6 +56,8 @@
 #define PTE_P           (1<<1)
 #define PTE_U           (1<<5 | 1<<7 | 1<<9 | 1<<11)
 #define PTE_W           (1<<4 | 1<<6 | 1<<8 | 1<<10)
+
+#define PTE_USER        (PTE_U | PTE_W | PTE_P)
 
 // read fault status register of cp15
 #define read_fsr(c5)        do { \

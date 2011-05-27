@@ -45,28 +45,32 @@
  *                            |    Remapped Physical Memory     | RW/-- KMEMSIZE
  *                            |                                 |
  *     KERNBASE ------------> +---------------------------------+ 0xC0000000
+ *                            |        Invalid Memory (*)       | --/--
+ *     USERTOP -------------> +---------------------------------+ 0xB0000000
  *                            |                                 |
+ *                            :                                 :
+ *                            |         ~~~~~~~~~~~~~~~~        |
+ *                            :                                 :
  *                            |                                 |
- *                            |                                 |
- *                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *     USERBASE ------------> +---------------------------------+ 0x00200000
+ *                            |        Invalid Memory (*)       | --/--
+ *     0 -------------------> +---------------------------------+ 0x00000000
  * (*) Note: The kernel ensures that "Invalid Memory" is *never* mapped.
  *     "Empty Memory" is normally unmapped, but user programs may map pages
  *     there if desired.
  *
  * */
 
-// All physical memory mapped at this address.
+/* All physical memory mapped at this address */
 #define KERNBASE            0xC0000000
-// The maximum amount of physical memory.
-#define KMEMSIZE            0x38000000
+#define KMEMSIZE            0x38000000                  // the maximum amount of physical memory
 #define KERNTOP             (KERNBASE + KMEMSIZE)
 
 /* *
- * Virtual page table. Entry PDX[VPT] in the PD (Page Directory) contains a
- * pointer to the page directory itself, thereby turning the PD into a page
- * table, which maps all the PTEs (Page Table Entry) containing the page
- * mappings for the entire virtual address space into that 4 Meg region starting
- * at VPT.
+ * Virtual page table. Entry PDX[VPT] in the PD (Page Directory) contains
+ * a pointer to the page directory itself, thereby turning the PD into a page
+ * table, which maps all the PTEs (Page Table Entry) containing the page mappings
+ * for the entire virtual address space into that 4 Meg region starting at VPT.
  * */
 #define VPT                 0xFAC00000
 
@@ -74,6 +78,15 @@
 #define KSTACKPAGE          2
 // sizeof kernel stack
 #define KSTACKSIZE          (KSTACKPAGE * PGSIZE)
+
+#define USERTOP             0xB0000000
+#define USERBASE            0x00200000
+
+#define USER_ACCESS(start, end)                     \
+    (USERBASE <= (start) && (start) < (end) && (end) <= USERTOP)
+
+#define KERN_ACCESS(start, end)                     \
+    (KERNBASE <= (start) && (start) < (end) && (end) <= KERNTOP)
 
 #ifndef __ASSEMBLER__
 

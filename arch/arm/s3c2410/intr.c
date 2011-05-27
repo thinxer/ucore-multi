@@ -81,3 +81,7 @@ intr_data_abort(void) {
     }
     panic("unhandled page fault.\n");
 }
+
+void unhandled_mode(void) {
+    panic("unhandled mode\n");
+}

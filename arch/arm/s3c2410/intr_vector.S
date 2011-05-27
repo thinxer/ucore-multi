@@ -7,6 +7,7 @@
 .global __intr_vector_end
 .extern intr_dispatch
 .extern intr_data_abort
+.extern unhandled_mode
 
 /* TODO put this magic numbers into an include file. */
 .equ DISABLE_IRQ,		0x80
@@ -39,19 +40,19 @@ __intr_vector_start:
 reset:
     .word	_kern_init
 undefined:
-    .word   .
+    .word   unhandled_proc
 swi:
-    .word	.
+    .word   unhandled_proc
 prefetch_abort:
-    .word	.
+    .word   unhandled_proc
 data_abort:
     .word	abort_proc
 reserved:
-    .word	.
+    .word   unhandled_proc
 irq:
     .word	irq_proc
 fiq:
-    .word	.
+    .word   unhandled_proc
 
 __intr_vector_end:
 
@@ -100,3 +101,21 @@ abort_proc:
 	ldmfd sp!,{r14}
 	msr spsr,r14
 	ldmfd sp!,{pc}^
+
+/**
+ * unhandled procedure, which will call unhandled_mode.
+ */
+unhandled_proc:
+	sub lr,lr,#8
+	stmfd sp!,{r14}
+	mrs lr,spsr
+	stmfd sp!,{r14}
+
+    /* Go into svc mode and responds to the interrupt. */
+    msr cpsr_c,#(DISABLE_IRQ|DISABLE_FIQ|SVC_MOD)
+
+	stmfd sp!,{r0-r3}
+	bl unhandled_mode
+
+    /* won't return */
+

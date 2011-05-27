@@ -20,6 +20,21 @@ void tlb_invalidate(pde_t *pgdir, uintptr_t la);
 
 void print_pgdir(void);
 
+// XXX used by check_mmap
+#define arch_load_page_dir(pgdir) asm ( \
+		"mcr p15,0,%0,c2,c0,0\n" \
+		"mvn r0,#0\n" \
+		"mcr p15,0,r0,c3,c0,0\n" \
+		"mov r0,#0x1\n" \
+		"mcr p15,0,r0,c1,c0,0\n" \
+		"mov r0,r0\n" \
+		"mov r0,r0\n" \
+		"mov r0,r0\n" \
+		: \
+		: "r" (pgdir) \
+		:"r0" \
+	);
+
 /* *
  * PADDR - takes a kernel virtual address (an address that points above KERNBASE),
  * where the machine's maximum 256MB of physical memory is mapped and returns the

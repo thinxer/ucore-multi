@@ -222,6 +222,7 @@ struct taskstate {
 /* page directory and page table constants */
 #define NPDEENTRY       1024                    // page directory entries per page directory
 #define NPTEENTRY       1024                    // page table entries per page table
+#define PGDIRSIZE       (sizeof(pde_t) * NPDEENTRY) // page directroy size
 
 #define PGSIZE          4096                    // bytes mapped by a page
 #define PGSHIFT         12                      // log2(PGSIZE)

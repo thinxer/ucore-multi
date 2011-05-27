@@ -37,9 +37,14 @@ Compile for the ARM architecture:
 
 #todo
 
-* Implement VMM.
+* Move kernel base to 0xC000000 from 0x3000000.
+* Implement mmap.
+* Draw a map of memlayout of ARM.
+* Clear system stack address.
 * Implement syscall.
 * Input from UART.
+* Swap?
+* Processes.
 
 #acknowledgment
 

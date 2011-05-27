@@ -41,6 +41,12 @@ struct Page {
 #define PG_property                 1
 // page frame is included in a slab
 #define PG_slab                     2
+// the page has been modified
+#define PG_dirty                    3
+// the page is in the active or inactive page list (and swap hash table)
+#define PG_swap                     4
+// the page is in the active page list
+#define PG_active                   5
 
 /* Helper methods. */
 #define SetPageReserved(page)       set_bit(PG_reserved, &((page)->flags))
@@ -52,6 +58,15 @@ struct Page {
 #define SetPageSlab(page)           set_bit(PG_slab, &((page)->flags))
 #define ClearPageSlab(page)         clear_bit(PG_slab, &((page)->flags))
 #define PageSlab(page)              test_bit(PG_slab, &((page)->flags))
+#define SetPageDirty(page)          set_bit(PG_dirty, &((page)->flags))
+#define ClearPageDirty(page)        clear_bit(PG_dirty, &((page)->flags))
+#define PageDirty(page)             test_bit(PG_dirty, &((page)->flags))
+#define SetPageSwap(page)           set_bit(PG_swap, &((page)->flags))
+#define ClearPageSwap(page)         clear_bit(PG_swap, &((page)->flags))
+#define PageSwap(page)              test_bit(PG_swap, &((page)->flags))
+#define SetPageActive(page)         set_bit(PG_active, &((page)->flags))
+#define ClearPageActive(page)       clear_bit(PG_active, &((page)->flags))
+#define PageActive(page)            test_bit(PG_active, &((page)->flags))
 
 static inline int
 page_ref(struct Page *page) {

@@ -6,9 +6,10 @@
 #include <mach/memlayout.h>
 #include <atomic.h>
 #include <assert.h>
+#include <arch/x86.h>
 
 extern pde_t *boot_pgdir;
-extern uintptr_t boot_cr3;
+extern uintptr_t boot_pgdir_p;
 
 pte_t *get_pte(pde_t *pgdir, uintptr_t la, bool create);
 struct Page *get_page(pde_t *pgdir, uintptr_t la, pte_t **ptep_store);
@@ -19,6 +20,9 @@ void load_esp0(uintptr_t esp0);
 void tlb_invalidate(pde_t *pgdir, uintptr_t la);
 
 void print_pgdir(void);
+
+// XXX used by check_mmap()
+#define arch_load_page_dir(pgdir) lcr3(pgdir)
 
 /* *
  * PADDR - takes a kernel virtual address (an address that points above KERNBASE),

@@ -30,6 +30,14 @@
 // sizeof kernel stack
 #define KSTACKSIZE          (KSTACKPAGE * PGSIZE)
 
+#define USERTOP             0x20000000
+#define USERBASE            0x00200000
+
+#define USER_ACCESS(start, end)                     \
+    (USERBASE <= (start) && (start) < (end) && (end) <= USERTOP)
+#define KERN_ACCESS(start, end)                     \
+    (KERNBASE <= (start) && (start) < (end) && (end) <= KERNTOP)
+
 #ifndef __ASSEMBLER__
 
 #include <types.h>
