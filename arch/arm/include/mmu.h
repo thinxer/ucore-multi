@@ -34,7 +34,7 @@
 #define PDE_ADDR(pde)   PTE_ADDR(pde)
 
 /* page directory and page table constants */
-#define NPDEENTRY       1024                    // page directory entries per page directory
+#define NPDEENTRY       4096                    // page directory entries per page directory
 #define NPTEENTRY       1024                    // page table entries per page table
 
 #define PGSIZE          4096                    // bytes mapped by a page

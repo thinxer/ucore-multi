@@ -128,6 +128,8 @@ page_init(void) {
     }
 
     uintptr_t freemem = PADDR((uintptr_t)pages + sizeof(struct Page) * npage);
+    // XXX Round up to 4 pages so that buddy pmm will align.
+    freemem = ROUNDUP(freemem, 4 * PGSIZE);
     cprintf("freemem: %08lx\n", freemem);
 
     for (i = 0; i < memmap->nr_map; i ++) {
@@ -197,12 +199,10 @@ boot_map_segment(pde_t *pgdir, uintptr_t la, size_t size, uintptr_t pa, uint32_t
 static void *
 boot_alloc_page(void) {
     struct Page *p;
-    // XXX size
-    p = alloc_pages(8);
+    p = alloc_pages(sizeof(pde_t) * NPDEENTRY / PGSIZE);
     if (p == NULL)
         panic("boot_alloc_page failed.\n");
-    // XXX hacky to get an 16k align. need a better method.
-    return (ROUNDUP(page2kva(p), 1<<14));
+    return page2kva(p);
 }
 
 // pmm_init - setup a pmm to manage physical memory, build PDT&PT to setup
