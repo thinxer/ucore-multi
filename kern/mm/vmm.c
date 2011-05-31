@@ -535,7 +535,7 @@ check_pgfault(void) {
     assert(sum == 0);
 
     page_remove(pgdir, ROUNDDOWN(addr, PGSIZE));
-    free_page(pa2page(pgdir[0]));
+    free_page(pa2page(pgdir[base_addr]));
     pgdir[base_addr] = 0;
 
     mm->pgdir = NULL;
@@ -572,16 +572,8 @@ check_mmap(void) {
     addr0 = 0;
     do {
         ret = mm_map(mm0, addr0, PTSIZE, 0, NULL);
-        //cprintf("mmap@%08lx, ret=%d\n", addr0, ret);
-        //cprintf("d@0x10: %08lx\n", *(unsigned int*)0x10);
         assert(ret == (USER_ACCESS(addr0, addr0 + PTSIZE)) ? 0 : -E_INVAL);
         addr0 += PTSIZE;
-        /*
-        if (addr0 > 0x7800000) {
-            cprintf("===");
-            *((int*)0xffffffff) = 1;
-        }
-        */
     } while (addr0 != 0);
 
 
@@ -599,7 +591,6 @@ check_mmap(void) {
     addr0 = 0, i = 0;
     do {
         ret = mm_map(mm0, addr0, PTSIZE - PGSIZE, 0, NULL);
-        cprintf("mmap@%08lx, ret=%d\n", addr0, ret);
         assert(ret == (USER_ACCESS(addr0, addr0 + PTSIZE)) ? 0 : -E_INVAL);
         if (ret == 0) {
             i ++;
@@ -634,13 +625,9 @@ check_mmap(void) {
 
     // setup page table
 
-    cprintf("pages: %d\n", PGDIRSIZE / PGSIZE);
     struct Page *page = alloc_pages(PGDIRSIZE / PGSIZE);
     assert(page != NULL);
     pde_t *pgdir = page2kva(page);
-    cprintf("boot_pgdir@%08lx\n", (uintptr_t) boot_pgdir);
-    cprintf("pgdir@%08lx\n", (uintptr_t) pgdir);
-    cprintf("pgdir(p)@%08lx\n", (uintptr_t) PADDR(pgdir));
     memcpy(pgdir, boot_pgdir, PGDIRSIZE);
     pgdir[PDX(VPT)] = PADDR(pgdir) | PTE_P | PTE_W;
 
@@ -648,12 +635,7 @@ check_mmap(void) {
 
     mm0->pgdir = pgdir;
     check_mm_struct = mm0;
-    cprintf("1");
-//    *((int*)10000) = 1;
-    cprintf("1.1");
     load_page_dir(PADDR(mm0->pgdir));
- //   *((int*)10000) = 1;
-    cprintf("2");
 
     uint32_t vm_flags = VM_WRITE | VM_READ;
     struct vma_struct *vma;
@@ -668,8 +650,6 @@ check_mmap(void) {
 
     cprintf("addr0: %08lx\n", addr0);
 
-    cprintf("3");
-
     assert(ret == 0 && addr0 != 0 && mm0->map_count == 1);
     assert(vma->vm_start == addr0 && vma->vm_end == addr0 + PTSIZE);
 
@@ -681,19 +661,11 @@ check_mmap(void) {
         assert(ptep == NULL);
     }
 
-    cprintf("4");
-    cprintf("4.0.1");
-
     memset((void *)addr0, 0xEF, PGSIZE * 2);
-    cprintf("4.1");
     ptep = get_pte(pgdir, addr0, 0);
-    cprintf("4.2");
     assert(ptep != NULL && (*ptep & PTE_P));
     ptep = get_pte(pgdir, addr0 + PGSIZE, 0);
-    cprintf("4.3");
     assert(ptep != NULL && (*ptep & PTE_P));
-
-    cprintf("5");
 
     ret = mm_unmap(mm0, - PTSIZE, PTSIZE);
     assert(ret == -E_INVAL);
@@ -721,8 +693,6 @@ check_mmap(void) {
     for (i = 0; i < PGSIZE; i ++) {
         assert(*(char *)(addr1 + i) == (char)0xEF);
     }
-
-    cprintf("6");
 
     ret = mm_unmap(mm0, addr1 + PGSIZE / 2, PGSIZE / 4);
     assert(ret == 0 && mm0->map_count == 2);
@@ -763,7 +733,7 @@ check_mmap(void) {
     }
 
     exit_mmap(mm0);
-    for (i = 0; i < PDX(KERNBASE); i ++) {
+    for (i = PDX(addr0); i < PDX(KERNBASE); i ++) {
         assert(pgdir[i] == 0);
     }
 
@@ -800,10 +770,10 @@ check_mmap(void) {
     mm1 = mm_create();
     assert(mm1 != NULL);
 
-    page = alloc_page();
+    page = alloc_pages(PGDIRSIZE / PGSIZE);
     assert(page != NULL);
     pgdir = page2kva(page);
-    memcpy(pgdir, boot_pgdir, PGSIZE);
+    memcpy(pgdir, boot_pgdir, PGDIRSIZE);
     pgdir[PDX(VPT)] = PADDR(pgdir) | PTE_P | PTE_W;
     mm1->pgdir = pgdir;
 

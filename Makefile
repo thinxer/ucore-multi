@@ -1,5 +1,5 @@
 # target architecture
-TARGET_ARCH := x86
+TARGET_ARCH := arm
 # target machine
 TARGET_MACH :=
 

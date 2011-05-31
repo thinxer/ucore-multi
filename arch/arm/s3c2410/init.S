@@ -12,11 +12,11 @@ kernel init asm file.
 .equ ABT_MOD,			0x17
 .equ UND_MOD,			0x1b
 
-.equ MEM_SIZE,			0x02000000
+.equ MEM_SIZE,			0x04000000
 .equ TEXT_BASE,			0x30000000
 
 .equ _SVC_STACK,		(TEXT_BASE+MEM_SIZE-4)
-.equ _IRQ_STACK,		(_SVC_STACK-0x400)
+.equ _IRQ_STACK,		(_SVC_STACK-0x2000)
 .equ _FIQ_STACK,		(_IRQ_STACK-0x400)
 .equ _ABT_STACK,		(_FIQ_STACK-0x400)
 .equ _UND_STACK,		(_ABT_STACK-0x400)
