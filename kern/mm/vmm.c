@@ -811,9 +811,9 @@ check_mmap(void) {
     exit_mmap(mm0);
     exit_mmap(mm1);
 
-    free_page(kva2page(mm0->pgdir));
+    free_pages(kva2page(mm0->pgdir), PGDIRSIZE/PGSIZE);
     mm_destroy(mm0);
-    free_page(kva2page(mm1->pgdir));
+    free_pages(kva2page(mm1->pgdir), PGDIRSIZE/PGSIZE);
     mm_destroy(mm1);
 
     cprintf("check_mmap: step4, dup_mmap ok.\n");
