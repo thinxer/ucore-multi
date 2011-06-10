@@ -91,7 +91,7 @@ nr_free_pages(void) {
     return ret;
 }
 
-/* pmm_init - initialize the physical memory management */
+// initialize physical pages.
 static void
 page_init(void) {
     struct e820map *memmap = (struct e820map *)(0x8000 + KERNBASE);
@@ -128,7 +128,7 @@ page_init(void) {
     }
 
     uintptr_t freemem = PADDR((uintptr_t)pages + sizeof(struct Page) * npage);
-    // XXX Round up to 4 pages so that buddy pmm will align.
+    // Round up to 4 pages so that buddy pmm will align (ARM only).
     freemem = ROUNDUP(freemem, 4 * PGSIZE);
     cprintf("freemem: %08lx\n", freemem);
 
@@ -169,6 +169,7 @@ boot_map_segment(pde_t *pgdir, uintptr_t la, size_t size, uintptr_t pa, uint32_t
     la = ROUNDDOWN(la, PGSIZE);
     pa = ROUNDDOWN(pa, PGSIZE);
     for (; size > 0; size -= 1<<PTXSHIFT, la += 1<<PTXSHIFT, pa += 1<<PTXSHIFT) {
+        // cprintf("mapping: la@%08lx to pa@%08lx\n", la, pa);
         pte_t *ptep = get_pte(pgdir, la, 1);
         assert(ptep != NULL);
         *ptep = pa | PTE_P | perm;
@@ -192,8 +193,8 @@ boot_alloc_page(void) {
     return page2kva(p);
 }
 
-// pmm_init - setup a pmm to manage physical memory, build PDT&PT to setup
-// paging mechanism check the correctness of pmm & paging mechanism, print
+// setup a pmm to manage physical memory, build PDT&PT to setup paging
+// mechanism check the correctness of pmm & paging mechanism, print
 // PDT&PT
 void
 pmm_init(void) {
@@ -213,7 +214,7 @@ pmm_init(void) {
 
     // create boot_pgdir, an initial page directory(Page Directory Table, PDT)
     boot_pgdir = boot_alloc_page();
-    memset(boot_pgdir, 0, 4 * PGSIZE);
+    memset(boot_pgdir, 0, PGDIRSIZE);
     cprintf("pgdir is at: %08lx\n", boot_pgdir);
     boot_pgdir_p = PADDR(boot_pgdir);
     cprintf("pgdir is at (p): %08lx\n", boot_pgdir_p);
@@ -224,21 +225,27 @@ pmm_init(void) {
 
     // recursively insert boot_pgdir in itself to form a virtual page table at
     // virtual address VPT
-    boot_pgdir[PDX(VPT)] = PADDR(boot_pgdir) | PTE_P | PTE_W;
+    boot_map_segment(boot_pgdir, VPT, PGDIRSIZE, boot_pgdir_p, PTE_W);
+    // boot_pgdir[PDX(VPT)] = PADDR(boot_pgdir) | PTE_P | PTE_W;
 
     cprintf("mapping initial pages... ");
 
     // Kernel
     boot_map_segment(boot_pgdir, KERNBASE, KMEMSIZE, PKERNBASE, PTE_W);
     // IO
-    boot_map_segment(boot_pgdir, 0x48000000, 0x18000000, 0x48000000, PTE_W);
+    boot_map_segment(boot_pgdir, 0x48000000, 0x08000000, 0x48000000, PTE_W);
     // map intr section to 0x0
     extern int  __intr_vector_start[];
     boot_map_segment(boot_pgdir, 0x0, PGSIZE, (uintptr_t) PADDR(__intr_vector_start), PTE_W);
 
     cprintf("done!\n");
 
+    // cprintf("pde: %08lx\n", boot_pgdir[0x300]);
+    // cprintf("pde: %08lx\n", *(uint32_t*)0x337f4000);
+    cprintf("pte: %08lx\n", *get_pte(boot_pgdir, 0x33ff0000, 0));
+
     cprintf("enabling paging... ");
+    asm volatile ( "TAG:");
     enable_paging();
 
     cprintf("success!\n");
@@ -257,7 +264,7 @@ pmm_init(void) {
 pte_t *
 get_pte(pde_t *pgdir, uintptr_t la, bool create) {
     pde_t *pdep = &pgdir[PDX(la)];
-    if (!(*pdep & PTE_P)) {
+    if (!(*pdep & PDE_P)) {
         struct Page *page;
         if (!create || (page = alloc_page()) == NULL) {
             return NULL;
@@ -265,7 +272,7 @@ get_pte(pde_t *pgdir, uintptr_t la, bool create) {
         set_page_ref(page, 1);
         uintptr_t pa = page2pa(page);
         memset(KADDR(pa), 0, PGSIZE);
-        *pdep = pa | PDE_FINE | PDE_P;
+        *pdep = pa | PDE_COARSE | PDE_P;
     }
     return &((pte_t *)KADDR(PDE_ADDR(*pdep)))[PTX(la)];
 }
@@ -293,11 +300,7 @@ page_remove_pte(pde_t *pgdir, uintptr_t la, pte_t *ptep) {
         if (page_ref_dec(page) == 0) {
             free_page(page);
         }
-        // remove four enties together
         *ptep = 0;
-        *(ptep+1) = 0;
-        *(ptep+2) = 0;
-        *(ptep+3) = 0;
         tlb_invalidate(pgdir, la);
     }
 }
@@ -336,11 +339,7 @@ page_insert(pde_t *pgdir, struct Page *page, uintptr_t la, uint32_t perm) {
             page_remove_pte(pgdir, la, ptep);
         }
     }
-    // ARM fine+small pages needs to keep 4 entries for a fine page.
     *ptep = page2pa(page) | PTE_P | perm;
-    *(ptep+1) = page2pa(page) | PTE_P | perm;
-    *(ptep+2) = page2pa(page) | PTE_P | perm;
-    *(ptep+3) = page2pa(page) | PTE_P | perm;
     tlb_invalidate(pgdir, la);
     return 0;
 }
@@ -429,6 +428,8 @@ copy_range(pde_t *to, pde_t *from, uintptr_t start, uintptr_t end, bool share) {
                 memcpy(page2kva(page), page2kva(pte2page(*ptep)), PGSIZE);
                 ret = page_insert(to, page, start, perm);
                 assert(ret == 0);
+            } else {
+                panic("need swap");
             }
             /*  XXX need swap
             else {
@@ -471,8 +472,7 @@ check_pgdir(void) {
     assert(pa2page(*ptep) == p1);
     assert(page_ref(p1) == 1);
 
-    // the second page is at 4, not 1.
-    ptep = &((pte_t *)KADDR(PDE_ADDR(boot_pgdir[0])))[0+4];
+    ptep = &((pte_t *)KADDR(PDE_ADDR(boot_pgdir[0])))[1];
     assert(get_pte(boot_pgdir, PGSIZE, 0) == ptep);
 
     p2 = alloc_page();

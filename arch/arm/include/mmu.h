@@ -3,7 +3,7 @@
 
 // A linear address 'la' has a three-part structure as follows:
 //
-// +--------12--------+-----10-------+-+-------12----------+
+// +--------12--------+------8-------+---------12----------+
 // | Page Directory   | Page Table   | Offset within Page  |
 // |      Index       |   Index      |                     |
 // +------------------+--------------+---------------------+
@@ -37,21 +37,21 @@
 // page directory entries per page directory
 #define NPDEENTRY       4096
 // page table entries per page table
-#define NPTEENTRY       1024
+#define NPTEENTRY       256
 // page directroy size
 #define PGDIRSIZE       (sizeof(pde_t) * NPDEENTRY)
 
 #define PGSIZE          4096                    // bytes mapped by a page
 #define PGSHIFT         12                      // log2(PGSIZE)
-#define PTSIZE          (PGSIZE * NPTEENTRY / 4)    // bytes mapped by a page directory entry
+#define PTSIZE          (PGSIZE * NPTEENTRY)    // bytes mapped by a page directory entry
 #define PTSHIFT         20                      // log2(PTSIZE)
 
-#define PTXSHIFT        10                      // offset of PTX in a linear address
+#define PTXSHIFT        12                      // offset of PTX in a linear address
 #define PDXSHIFT        20                      // offset of PDX in a linear address
 
-#define PDE_FINE        3
+#define PDE_COARSE      1
+#define PDE_P           (1<<4)                  // one of the implementation defined bit
 
-#define PDE_P           (1<<4)
 // Really, this is not pte_p, but the flag for small page
 #define PTE_P           (1<<1)
 #define PTE_U           (1<<5 | 1<<7 | 1<<9 | 1<<11)

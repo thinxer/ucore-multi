@@ -13,7 +13,7 @@
 // All kernel physical memory mapped at this address.
 #define KERNBASE            0x30000000
 // The maximum amount of physical memory used by kernel.
-#define KMEMSIZE            0x04000000          /* 64MB */
+#define KMEMSIZE            0x08000000          /* 64MB */
 #define KERNTOP             (KERNBASE + KMEMSIZE)
 
 /**
