@@ -168,7 +168,7 @@ boot_map_segment(pde_t *pgdir, uintptr_t la, size_t size, uintptr_t pa, uint32_t
     assert(PGOFF(la) == PGOFF(pa));
     la = ROUNDDOWN(la, PGSIZE);
     pa = ROUNDDOWN(pa, PGSIZE);
-    for (; size > 0; size -= 1<<PTXSHIFT, la += 1<<PTXSHIFT, pa += 1<<PTXSHIFT) {
+    for (; size > 0; size -= PGSIZE, la += PGSIZE, pa += PGSIZE) {
         // cprintf("mapping: la@%08lx to pa@%08lx\n", la, pa);
         pte_t *ptep = get_pte(pgdir, la, 1);
         assert(ptep != NULL);
@@ -214,6 +214,7 @@ pmm_init(void) {
 
     // create boot_pgdir, an initial page directory(Page Directory Table, PDT)
     boot_pgdir = boot_alloc_page();
+    assert(((uintptr_t)boot_pgdir & 0x3fff) == 0);
     memset(boot_pgdir, 0, PGDIRSIZE);
     cprintf("pgdir is at: %08lx\n", boot_pgdir);
     boot_pgdir_p = PADDR(boot_pgdir);
@@ -233,7 +234,7 @@ pmm_init(void) {
     // Kernel
     boot_map_segment(boot_pgdir, KERNBASE, KMEMSIZE, PKERNBASE, PTE_W);
     // IO
-    boot_map_segment(boot_pgdir, 0x48000000, 0x08000000, 0x48000000, PTE_W);
+    boot_map_segment(boot_pgdir, 0x48000000, 0x10000000, 0x48000000, PTE_W);
     // map intr section to 0x0
     extern int  __intr_vector_start[];
     boot_map_segment(boot_pgdir, 0x0, PGSIZE, (uintptr_t) PADDR(__intr_vector_start), PTE_W);
@@ -245,8 +246,9 @@ pmm_init(void) {
     cprintf("pte: %08lx\n", *get_pte(boot_pgdir, 0x33ff0000, 0));
 
     cprintf("enabling paging... ");
-    asm volatile ( "TAG:");
+    asm volatile ( "TAG:" );
     enable_paging();
+    asm volatile ( "TAGEND:" );
 
     cprintf("success!\n");
 

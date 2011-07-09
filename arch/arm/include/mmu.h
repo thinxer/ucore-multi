@@ -18,7 +18,7 @@
 #define PDX(la) ((((uintptr_t)(la)) >> PDXSHIFT) & 0xFFF)
 
 // page table index
-#define PTX(la) ((((uintptr_t)(la)) >> PTXSHIFT) & 0x3FF)
+#define PTX(la) ((((uintptr_t)(la)) >> PTXSHIFT) & 0xFF)
 
 // page number field of address
 #define PPN(la) (((uintptr_t)(la)) >> PGSHIFT)
@@ -31,7 +31,7 @@
 
 // address in page table or page directory entry
 #define PTE_ADDR(pte)   ((uintptr_t)(pte) & ~0xFFF)
-#define PDE_ADDR(pde)   PTE_ADDR(pde)
+#define PDE_ADDR(pte)   ((uintptr_t)(pte) & ~0x3FF)
 
 /* page directory and page table constants */
 // page directory entries per page directory
