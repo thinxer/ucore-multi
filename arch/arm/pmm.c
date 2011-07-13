@@ -395,7 +395,7 @@ exit_range(pde_t *pgdir, uintptr_t start, uintptr_t end) {
     start = ROUNDDOWN(start, PTSIZE);
     do {
         int pde_idx = PDX(start);
-        if (pgdir[pde_idx] & PTE_P) {
+        if (pgdir[pde_idx] & PDE_P) {
             free_page(pde2page(pgdir[pde_idx]));
             pgdir[pde_idx] = 0;
         }
