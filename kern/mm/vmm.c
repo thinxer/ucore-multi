@@ -734,7 +734,6 @@ check_mmap(void) {
 
     exit_mmap(mm0);
     for (i = PDX(addr0); i < PDX(KERNBASE); i ++) {
-        cprintf("%d\n", i);
         assert(pgdir[i] == 0);
     }
 

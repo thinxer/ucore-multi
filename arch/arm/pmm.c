@@ -348,10 +348,12 @@ page_insert(pde_t *pgdir, struct Page *page, uintptr_t la, uint32_t perm) {
 
 // invalidate a TLB entry, but only if the page tables being
 // edited are the ones currently in use by the processor.
+// TODO invalidate only la entry.
 void
 tlb_invalidate(pde_t *pgdir, uintptr_t la) {
-    asm (
-    "mcr p15,0,r0,c8,c7,0;"
+    asm volatile (
+    "mcr p15,0,%0,c8,c7,0;"
+    ::"r" (0)
     );
 }
 
