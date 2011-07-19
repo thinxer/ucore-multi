@@ -98,10 +98,10 @@ bin/kernel: $(KERN_OBJS) $(LIB_OBJS) $(ARCH_OBJS) $(ASM_OBJS)
 
 .PHONY: skyeye debug-skyeye
 skyeye: kernel
-	@cd tool/emu && skyeye -n
+	@cd tool/emu && skyeye -n -e ../../bin/kernel
 
 dskyeye: kernel
-	@cd tool/emu && skyeye
+	@cd tool/emu && skyeye -e ../../bin/kernel
 
 .PHONY: qemu debug-qemu
 qemu: kernel
