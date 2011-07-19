@@ -8,7 +8,7 @@
 #include <assert.h>
 
 extern pde_t *boot_pgdir;
-extern uintptr_t boot_cr3;
+extern uintptr_t boot_pgdir_p;
 
 pte_t *get_pte(pde_t *pgdir, uintptr_t la, bool create);
 struct Page *get_page(pde_t *pgdir, uintptr_t la, pte_t **ptep_store);
@@ -20,20 +20,20 @@ void tlb_invalidate(pde_t *pgdir, uintptr_t la);
 
 void print_pgdir(void);
 
-// XXX used by check_mmap
 #define arch_load_page_dir(pgdir) asm volatile ( \
-		"mcr p15,0,%0,c2,c0,0\n" \
-		"mvn r0,#0\n" \
-		"mcr p15,0,r0,c3,c0,0\n" \
-		"mov r0,#0x1\n" \
-		"mcr p15,0,r0,c1,c0,0\n" \
-		"mov r0,r0\n" \
-		"mov r0,r0\n" \
-		"mov r0,r0\n" \
-		: \
-		: "r" (pgdir) \
-		:"r0" \
-	);
+        "mcr p15,0,%0,c2,c0,0\n" \
+        "mvn r0,#0\n" \
+        "mcr p15,0,r0,c3,c0,0\n" \
+        "mov r0,#0x1\n" \
+        "mcr p15,0,r0,c1,c0,0\n" \
+        "mov r0,r0\n" \
+        "mov r0,r0\n" \
+        "mov r0,r0\n" \
+        "mcr p15,0,%1,c8,c7,0\n"\
+        : \
+        : "r" (pgdir), "r" (0) \
+        :"r0" \
+    );\
 
 /* *
  * PADDR - takes a kernel virtual address (an address that points above KERNBASE),
