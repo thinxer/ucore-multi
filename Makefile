@@ -104,7 +104,8 @@ KERN_OBJS 	:=	obj/kern/init/init.o\
 				obj/kern/debug/panic.o\
 				obj/kern/mm/buddy_pmm.o\
 				obj/kern/mm/slab.o\
-				obj/kern/mm/vmm.o
+				obj/kern/mm/vmm.o\
+				obj/kern/mm/shmem.o
 LIB_OBJS	:=	obj/lib/printfmt.o\
 				obj/lib/string.o\
 				obj/lib/readline.o\

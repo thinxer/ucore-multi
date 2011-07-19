@@ -502,31 +502,24 @@ copy_range(pde_t *to, pde_t *from, uintptr_t start, uintptr_t end, bool share) {
                 return -E_NO_MEM;
             }
             int ret;
-            struct Page *page, *newpage = alloc_page();
             assert(*ptep != 0 && *nptep == 0);
             if (*ptep & PTE_P) {
                 uint32_t perm = (*ptep & PTE_USER);
-                if ((page = newpage) == NULL) {
-                    return -E_NO_MEM;
+                struct Page *page = pte2page(*ptep);
+                if (!share && (*ptep & PTE_W)) {
+                    perm &= ~PTE_W;
+                    page_insert(from, page, start, perm);
                 }
-                newpage = NULL;
-                memcpy(page2kva(page), page2kva(pte2page(*ptep)), PGSIZE);
                 ret = page_insert(to, page, start, perm);
                 assert(ret == 0);
             }
             /* XXX need swap
             else {
-                swap_entry_t entry;
-                if (swap_copy_entry(*ptep, &entry) != 0) {
-                    return -E_NO_MEM;
-                }
+                swap_entry_t entry = *ptep;
                 swap_duplicate(entry);
                 *nptep = entry;
             }
             */
-            if (newpage != NULL) {
-                free_page(newpage);
-            }
         }
         start += PGSIZE;
     } while (start != 0 && start < end);
