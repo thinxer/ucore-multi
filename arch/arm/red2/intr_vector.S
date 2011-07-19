@@ -6,7 +6,6 @@
 .global __intr_vector_start
 .global __intr_vector_end
 .extern intr_dispatch
-.extern intr_data_abort
 .extern unhandled_mode
 
 /* TODO put this magic numbers into an include file. */
@@ -46,7 +45,7 @@ swi:
 prefetch_abort:
     .word   unhandled_proc
 data_abort:
-    .word	abort_proc
+    .word	unhandled_proc
 reserved:
     .word   unhandled_proc
 irq:
@@ -74,29 +73,6 @@ irq_proc:
 
     /* Return to the irq mode. */
     msr cpsr_c,#(DISABLE_IRQ|DISABLE_FIQ|IRQ_MOD)
-
-	ldmfd sp!,{r14}
-	msr spsr,r14
-	ldmfd sp!,{pc}^
-
-/**
- * abort procedure, which will call intr_dispatch.
- */
-abort_proc:
-	sub lr,lr,#8
-	stmfd sp!,{r14}
-	mrs lr,spsr
-	stmfd sp!,{r14}
-
-    /* Go into svc mode and responds to the interrupt. */
-    msr cpsr_c,#(DISABLE_IRQ|DISABLE_FIQ|SVC_MOD)
-
-	stmfd sp!,{r0-r3}
-	bl intr_data_abort
-	ldmfd sp!,{r0-r3}
-
-    /* Return to the abt mode. */
-    msr cpsr_c,#(DISABLE_IRQ|DISABLE_FIQ|ABT_MOD)
 
 	ldmfd sp!,{r14}
 	msr spsr,r14

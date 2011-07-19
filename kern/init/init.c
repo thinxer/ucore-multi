@@ -34,9 +34,6 @@ kern_init(void) {
     // interrupts
     intr_init();
 
-    // virtual memory management
-    vmm_init();
-
     // timer
     clock_init();
 

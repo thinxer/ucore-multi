@@ -14,20 +14,8 @@ volatile size_t ticks;
 
 void
 clock_init(void) {
+    return;
     ticks = 0;
 
-    // The higher byte is a frequency divisor
-	// *TCFG0|=0x800;
-	*TCFG0|=0xff00;
-	*TCON&=(~(7<<20));
-	*TCON|=(1<<22);
-	*TCON|=(1<<21);
-
-    // XXX this counter seems not working...
-	*TCONB4=10000000;
-
-	*TCON|=(1<<20);
-	*TCON&=~(1<<21);
-
-	intr_umask(14);
+	//intr_umask(14);
 }
