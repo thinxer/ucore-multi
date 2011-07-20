@@ -34,8 +34,8 @@ const struct pmm_manager *pmm_manager;
  * always available at virtual address PGADDR(PDX(VPT), PDX(VPT), 0), to which
  * vpd is set bellow.
  * */
-pte_t * const vpt = (pte_t *)VPT;
-pde_t * const vpd = (pde_t *)PGADDR(PDX(VPT), PDX(VPT), 0);
+//pte_t * const vpt = (pte_t *)VPT;
+//pde_t * const vpd = (pde_t *)PGADDR(PDX(VPT), PDX(VPT), 0);
 
 static void check_alloc_page(void);
 static void check_pgdir(void);
@@ -228,7 +228,7 @@ pmm_init(void) {
 
     // recursively insert boot_pgdir in itself to form a virtual page table at
     // virtual address VPT
-    boot_map_segment(boot_pgdir, VPT, PGDIRSIZE, boot_pgdir_p, PTE_W);
+    //boot_map_segment(boot_pgdir, VPT, PGDIRSIZE, boot_pgdir_p, PTE_W);
     // boot_pgdir[PDX(VPT)] = PADDR(boot_pgdir) | PTE_P | PTE_W;
 
     cprintf("mapping initial pages... ");

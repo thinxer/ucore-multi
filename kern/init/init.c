@@ -8,7 +8,6 @@
 #include <bitops.h>
 #include <pmm.h>
 #include <slab.h>
-#include <vmm.h>
 
 /* Before calling into kern_init, we must make sure the memory is properly
  * mapped. This is because the kernel is compiled against KERNBASE but it's not
@@ -21,17 +20,15 @@ kern_init(void) {
     // clear bss
     extern char edata[], end[];
     memset(edata, 0, end - edata);
-
+    asm volatile("ldr r0, =0xF0000000\nmov r1, #0xFE\nstr r1, [r0]": : :"r0", "r1");
     // console
     cons_init();
-
+   
+    asm volatile("ldr r0, =0xF0000000\nmov r1, #0xFD\nstr r1, [r0]": : :"r0", "r1");
     cprintf("initializing\n");
 
-    // physical memory management
-    pmm_init();
-    slab_init();
-
-    // interrupts
+    asm volatile("ldr r0, =0xF0000000\nmov r1, #0xFC\nstr r1, [r0]": : :"r0", "r1");
+     // interrupts
     intr_init();
 
     // timer
@@ -39,6 +36,10 @@ kern_init(void) {
 
     // enable interrupts
     intr_enable();
+
+   // physical memory management
+    pmm_init();
+    slab_init();
 
     atomic_t a;
     atomic_set(&a, 7);

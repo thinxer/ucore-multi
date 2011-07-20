@@ -21,7 +21,7 @@ HOSTCFLAGS	:= -g -Wall -O2
 # for compiling to target arch
 CC := $(TARGET_PREFIX)gcc
 # general flags
-CFLAGS := -fno-builtin -Wall -nostdinc -nostdlib -fno-stack-protector -gstabs -O2
+CFLAGS := -fno-builtin -Wall -nostdinc -nostdlib -fno-stack-protector -gstabs -O2 -march=armv4
 # includes
 CFLAGS += -I ./include -I ./kern/include
 
@@ -56,7 +56,6 @@ KERN_OBJS 	:=	obj/kern/init/init.o\
 				obj/kern/debug/panic.o\
 				obj/kern/mm/buddy_pmm.o\
 				obj/kern/mm/slab.o\
-				obj/kern/mm/vmm.o\
 				obj/kern/mm/shmem.o
 LIB_OBJS	:=	obj/lib/printfmt.o\
 				obj/lib/string.o\

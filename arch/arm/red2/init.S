@@ -12,8 +12,8 @@ kernel init asm file.
 .equ ABT_MOD,			0x17
 .equ UND_MOD,			0x1b
 
-.equ MEM_SIZE,			0x04000000
-.equ TEXT_BASE,			0x30000000
+.equ MEM_SIZE,			0x02000000
+.equ TEXT_BASE,			0x21000000
 
 .equ _SVC_STACK,		(TEXT_BASE+MEM_SIZE-4)
 .equ _IRQ_STACK,		(_SVC_STACK-0x2000)
@@ -26,6 +26,9 @@ _kern_init:
 /*
  * Setup stacks for each mode.
  */
+    ldr r0, =0xF0000000
+    mov r1, #255
+    str r1, [r0]
     msr cpsr_c,#(DISABLE_IRQ|DISABLE_FIQ|SVC_MOD)
 	ldr	sp,=_SVC_STACK
 	msr cpsr_c,#(DISABLE_IRQ|DISABLE_FIQ|IRQ_MOD)

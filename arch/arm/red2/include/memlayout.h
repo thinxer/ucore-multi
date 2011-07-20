@@ -9,29 +9,20 @@
 // Where the kernel will be loaded to the memory.
 // Unlike X86, which would always be 0x0, PKERNBASE differs on different ARM
 // boards.
-#define PKERNBASE           0x30000000
+#define PKERNBASE           0x20000000
 // All kernel physical memory mapped at this address.
-#define KERNBASE            0x30000000
+#define KERNBASE            0x20000000
 // The maximum amount of physical memory used by kernel.
-#define KMEMSIZE            0x08000000          /* 64MB */
+#define KMEMSIZE            0x03000000          /* 64MB */
 #define KERNTOP             (KERNBASE + KMEMSIZE)
-
-/**
- * Virtual page table. Entry PDX[VPT] in the PD (Page Directory) contains a
- * pointer to the page directory itself, thereby turning the PD into a page
- * table, which maps all the PTEs (Page Table Entry) containing the page
- * mappings for the entire virtual address space into that 4 Meg region starting
- * at VPT.
- */
-#define VPT                 0xFAC00000
 
 // # of pages in kernel stack
 #define KSTACKPAGE          2
 // sizeof kernel stack
 #define KSTACKSIZE          (KSTACKPAGE * PGSIZE)
 
-#define USERTOP             0x20000000
-#define USERBASE            0x00200000
+#define USERTOP             0x24000000
+#define USERBASE            0x23000000
 
 #define USER_ACCESS(start, end)                     \
     (USERBASE <= (start) && (start) < (end) && (end) <= USERTOP)

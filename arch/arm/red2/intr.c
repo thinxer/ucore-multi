@@ -5,12 +5,14 @@
 #include <mach/intr.h>
 #include <irqflags.h>
 #include <arch/mmu.h>
-#include <vmm.h>
 
 void
 intr_init(void) {
     // The interrupt table has been mapped to 0x0 in pmm_init, no need to do
     // anything here.
+    extern char __intr_vector_start[], __intr_vector_end[];
+    memcpy(0, __intr_vector_start, __intr_vector_end - __intr_vector_start);
+    cprintf("vector:%08lx\n", *(unsigned int*)0);
 }
 
 void
@@ -25,26 +27,27 @@ intr_disable(void) {
 
 void
 intr_mask(uint32_t offset) {
-	*(volatile uint32_t *)INTMSK |= (1<<offset);
+	//*(volatile uint32_t *)INTMSK |= (1<<offset);
 }
 
 void
 intr_umask(uint32_t offset) {
-	*(volatile uint32_t *)INTMSK &= ~(1<<offset);
+//	*(volatile uint32_t *)INTMSK &= ~(1<<offset);
 }
 
 static void
 intr_clearpending(uint32_t offset) {
-    *(volatile uint32_t *)SRCPND |= 1 << offset;
-    *(volatile uint32_t *)INTPND |= 1 << offset;
+//    *(volatile uint32_t *)SRCPND |= 1 << offset;
+//    *(volatile uint32_t *)INTPND |= 1 << offset;
 }
 
 void
 intr_dispatch(void) {
+/*
 	uint32_t int_offset = *(volatile uint32_t *) INTOFFSET;
     intr_clearpending(int_offset);
 	cprintf("%d\t", int_offset);
-
+*/
     // enable interrupt nesting
 	intr_enable();
 
