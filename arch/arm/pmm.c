@@ -212,8 +212,8 @@ pmm_init(void) {
     // use pmm->check to verify the correctness of the alloc/free function in a pmm
     check_alloc_page();
 
-    panic("over!");
-
+    //panic("over!");
+    /*
     // create boot_pgdir, an initial page directory(Page Directory Table, PDT)
     boot_pgdir = boot_alloc_page();
     assert(((uintptr_t)boot_pgdir & 0x3fff) == 0);
@@ -249,6 +249,7 @@ pmm_init(void) {
     cprintf("success!\n");
 
     // print_pgdir();
+    */
 }
 
 /* Get pte and return the kernel virtual address of this pte for la if the PT

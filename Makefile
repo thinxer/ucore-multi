@@ -21,7 +21,7 @@ HOSTCFLAGS	:= -g -Wall -O2
 # for compiling to target arch
 CC := $(TARGET_PREFIX)gcc
 # general flags
-CFLAGS := -fno-builtin -Wall -nostdinc -nostdlib -fno-stack-protector -gstabs -O2 -march=armv4
+CFLAGS := -fno-builtin -Wall -nostdinc -nostdlib -fno-stack-protector -gstabs -O2 -march=armv4 -Os
 # includes
 CFLAGS += -I ./include -I ./kern/include
 
@@ -56,19 +56,26 @@ KERN_OBJS 	:=	obj/kern/init/init.o\
 				obj/kern/debug/panic.o\
 				obj/kern/mm/buddy_pmm.o\
 				obj/kern/mm/slab.o\
-				obj/kern/mm/shmem.o
+				obj/kern/mm/shmem.o\
+				obj/kern/schedule/sched.o
 LIB_OBJS	:=	obj/lib/printfmt.o\
 				obj/lib/string.o\
 				obj/lib/readline.o\
 				obj/lib/stdio.o\
 				obj/lib/rand.o\
-				obj/lib/rb_tree.o
+				obj/lib/rb_tree.o\
+				obj/lib/hash.o
 ARCH_OBJS 	:=	obj/$(MACH_DIR)/clock.o\
 				obj/$(MACH_DIR)/console.o \
 				obj/$(MACH_DIR)/intr.o \
-				obj/$(ARCH_DIR)/pmm.o
+				obj/$(ARCH_DIR)/pmm.o \
+				obj/$(ARCH_DIR)/proc.o\
+				obj/$(ARCH_DIR)/trap.o
 ASM_OBJS	:=	obj/$(MACH_DIR)/init.o\
-				obj/$(MACH_DIR)/intr_vector.o
+				obj/$(MACH_DIR)/intr_vector.o\
+				obj/$(MACH_DIR)/switch.o\
+				obj/$(MACH_DIR)/trapentry.o\
+				obj/$(MACH_DIR)/entry.o
 
 ifeq ($(TARGET_ARCH), arm)
 ARCH_OBJS	+=	obj/$(ARCH_DIR)/lib/div0.o\

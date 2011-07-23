@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/!svn/ver/331/trunk/i386/lab3_process/proj12/kern/schedule
+END
+sched.c
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/svn/!svn/ver/331/trunk/i386/lab3_process/proj12/kern/schedule/sched.c
+END
+sched.h
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/svn/!svn/ver/284/trunk/i386/lab3_process/proj12/kern/schedule/sched.h
+END

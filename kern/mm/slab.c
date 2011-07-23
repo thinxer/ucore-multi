@@ -505,7 +505,6 @@ check_slab(void) {
     struct Page *p0, *p1;
     size_t order_size;
 
-
     p0 = kva2page(slabp0->s_mem - slabp0->offset), p1 = p0;
     order_size = (1 << cachep0->page_order);
     for (i = 0; i < cachep0->page_order; i ++, p1 ++) {
@@ -524,7 +523,6 @@ check_slab(void) {
     for (i = 0; i < cachep0->page_order; i ++, p0 ++) {
         assert(!PageSlab(p0));
     }
-
 
     v0 = kmalloc(16);
     assert(!list_empty(&(cachep0->slabs_notfull)));
@@ -578,6 +576,7 @@ check_slab(void) {
     }
 
     if (!has_off_slab) {
+	cprintf("slab is off\n");
         goto check_pass;
     }
 

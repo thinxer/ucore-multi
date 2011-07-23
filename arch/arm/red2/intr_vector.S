@@ -68,7 +68,7 @@ irq_proc:
     msr cpsr_c,#(DISABLE_IRQ|DISABLE_FIQ|SVC_MOD)
 
 	stmfd sp!,{r0-r3}
-	bl intr_dispatch
+	bl intr_irq
 	ldmfd sp!,{r0-r3}
 
     /* Return to the irq mode. */

@@ -1,12 +1,13 @@
 #include <console.h>
 
-#define UST0  ((volatile unsigned int *)(0xC1000000))
-#define UDT0  ((volatile unsigned int *)(0xC0000000))
+#define UST0  ((volatile unsigned int *)(0x50000010))
+#define URX0  ((volatile unsigned int *)(0x50000020))
+#define UTX0  ((volatile unsigned int *)(0x50000020))
 
 static void
 uart_putc(int c) {
     while (((*UST0) & 2) == 0);
-    *UDT0 = c;
+    *UTX0 = c;
 }
 
 void

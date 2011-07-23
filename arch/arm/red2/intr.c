@@ -4,7 +4,10 @@
 #include <string.h>
 #include <mach/intr.h>
 #include <irqflags.h>
-#include <arch/mmu.h>
+#include <clock.h>
+#include <sched.h>
+
+#define TICK_NUM 10
 
 void
 intr_init(void) {
@@ -42,20 +45,27 @@ intr_clearpending(uint32_t offset) {
 }
 
 void
-intr_dispatch(void) {
+intr_irq(void) {
+	cprintf("!");
+	ticks++;
+	run_timer_list();
+	if (ticks % TICK_NUM == 0){
+		assert(current != NULL);
+		current->need_resched = 1;
+	}
 /*
 	uint32_t int_offset = *(volatile uint32_t *) INTOFFSET;
     intr_clearpending(int_offset);
 	cprintf("%d\t", int_offset);
 */
     // enable interrupt nesting
-	intr_enable();
+	//intr_enable();
 
     // dispatch interrupt
-    cprintf("interrupt occured\n");
+    //cprintf("interrupt occured\n");
 
     // disable interrupt and prepare to return
-	intr_disable();
+	//intr_disable();
 }
 void unhandled_mode(void) {
     panic("unhandled mode\n");

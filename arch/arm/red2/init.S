@@ -44,3 +44,11 @@ _kern_init:
 
 _main:
 	b kern_init
+
+.data
+    .globl bootstack
+bootstack:
+    .space 0x2000
+    .globl bootstacktop
+bootstacktop:
+
