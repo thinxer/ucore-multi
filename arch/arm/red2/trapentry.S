@@ -66,9 +66,9 @@ forkrets:
 	# in case the saved register is supervisor, it may have been manually saved
 	# load the register and reload the pc without ^
 	# in case the saved register is user, load everything + sp
-	and r0, r0, #0xF
-	cmp r0, #0
-	beq __restore_user
+	#and r0, r0, #0xF
+	#cmp r0, #0
+	#beq __restore_user
 	ldmfd sp!,{r0-r12}
 	add sp, sp, #4
 	ldmfd sp!,{pc}

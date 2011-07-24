@@ -39,7 +39,7 @@ __intr_vector_start:
 reset:
     .word	_kern_init
 undefined:
-    .word   unhandled_proc
+    .word   undefined_intr_proc
 swi:
     .word   unhandled_proc
 prefetch_abort:
@@ -77,6 +77,19 @@ irq_proc:
 	ldmfd sp!,{r14}
 	msr spsr,r14
 	ldmfd sp!,{pc}^
+
+undefined_intr_proc:
+	sub lr, lr, #8
+	stmfd sp!,{r14}
+	mrs lr,spsr
+	stmfd sp!,{r14}
+
+	/* Go into svc mode and responds to the interrupt. */
+	msr cpsr_c,#(DISABLE_IRQ|DISABLE_FIQ|SVC_MOD)
+
+	stmfd sp!,{r0-r3}
+	bl undefined_intr
+	/* won't return */
 
 /**
  * unhandled procedure, which will call unhandled_mode.

@@ -32,13 +32,11 @@ wakeup_proc(struct proc_struct *proc) {
 
 void
 schedule(void) {
-    //cprintf("schedule\n");
-    unsigned long intr_flag;
+    bool intr_flag;
     list_entry_t *le, *last;
     struct proc_struct *next = NULL;
     local_intr_save(intr_flag);
     {
-	//cprintf("loop to find a proc\n");
         current->need_resched = 0;
         last = (current == idleproc) ? &proc_list : &(current->list_link);
         le = last;
@@ -51,12 +49,10 @@ schedule(void) {
             }
         } while (le != last);
         if (next == NULL || next->state != PROC_RUNNABLE) {
-	    //cprintf("no process runnable");
             next = idleproc;
         }
         next->runs ++;
         if (next != current) {
-	    //cprintf("proc run\n");
             proc_run(next);
         }
     }
@@ -65,7 +61,7 @@ schedule(void) {
 
 void
 add_timer(timer_t *timer) {
-    bool intr_flag;
+    unsigned long intr_flag;
     local_intr_save(intr_flag);
     {
         assert(timer->expires > 0 && timer->proc != NULL);
@@ -87,7 +83,7 @@ add_timer(timer_t *timer) {
 
 void
 del_timer(timer_t *timer) {
-    bool intr_flag;
+    unsigned long intr_flag;
     local_intr_save(intr_flag);
     {
         if (!list_empty(&(timer->timer_link))) {
@@ -106,7 +102,7 @@ del_timer(timer_t *timer) {
 
 void
 run_timer_list(void) {
-    bool intr_flag;
+    unsigned long intr_flag;
     local_intr_save(intr_flag);
     {
         list_entry_t *le = list_next(&timer_list);

@@ -1,6 +1,8 @@
 #ifndef __ASM_ARM_IRQFLAGS_H
 #define __ASM_ARM_IRQFLAGS_H
 
+#define PSR_I 0x00000080
+
 /*
  * Save the current interrupt enable state & disable IRQs
  */
@@ -103,4 +105,29 @@
 })
 
 #endif
+
+/* equivalent of sti assembly instruction */
+static inline void
+irq_flag_enable(void) {
+	asm volatile ("mrs r0, cpsr;"
+		"bic r0, r0, #0x80;"
+		"msr cpsr, r0;"
+	:::"r0", "memory", "cc");
+}
+
+/* equivalent of cti assembly instruction */
+static inline void
+irq_flag_disable(void) {
+	asm volatile ("mrs r0, cpsr;"
+		"orr r0, r0, #0x80;"
+		"msr cpsr, r0;"
+	:::"r0", "memory", "cc");
+}
+
+static inline uint32_t
+read_psrflags(void) {
+	uint32_t psrflags;
+	asm volatile ("mrs %0, cpsr" : "=r" (psrflags));
+	return psrflags;
+}
 

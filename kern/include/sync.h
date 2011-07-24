@@ -6,8 +6,24 @@
 #include <atomic.h>
 #include <sched.h>
 
-#define local_intr_save(x)      do { arch_local_irq_save(x); } while (0)
-#define local_intr_restore(x)   do { arch_local_irq_restore(x); } while (0)
+static inline bool
+__intr_save(void) {
+	if (read_psrflags() & PSR_I) {
+		return 0;
+	}
+	intr_disable();
+	return 1;
+}
+
+static inline void
+__intr_restore(bool flag) {
+	if (flag) {
+		intr_enable();
+	}
+}
+
+#define local_intr_save(x)      do { x = __intr_save(); } while (0)
+#define local_intr_restore(x)   __intr_restore(x);
 
 typedef volatile long unsigned int lock_t;
 

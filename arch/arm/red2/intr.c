@@ -6,6 +6,7 @@
 #include <irqflags.h>
 #include <clock.h>
 #include <sched.h>
+#include <proc.h>
 
 #define TICK_NUM 10
 
@@ -18,14 +19,16 @@ intr_init(void) {
     cprintf("vector:%08lx\n", *(unsigned int*)0);
 }
 
-void
+inline void
 intr_enable(void) {
-    arch_local_irq_enable();
+    //arch_local_irq_enable();
+    irq_flag_enable();
 }
 
-void
+inline void
 intr_disable(void) {
-    arch_local_irq_disable();
+    //arch_local_irq_disable();
+    irq_flag_disable();
 }
 
 void
@@ -46,13 +49,13 @@ intr_clearpending(uint32_t offset) {
 
 void
 intr_irq(void) {
-	cprintf("!");
-	ticks++;
-	run_timer_list();
-	if (ticks % TICK_NUM == 0){
-		assert(current != NULL);
-		current->need_resched = 1;
-	}
+	cprintf("timer\n");
+	//ticks++;
+	//run_timer_list();
+	//if (ticks % TICK_NUM == 0){
+	//	assert(current != NULL);
+	//	current->need_resched = 1;
+	//}
 /*
 	uint32_t int_offset = *(volatile uint32_t *) INTOFFSET;
     intr_clearpending(int_offset);
@@ -67,6 +70,11 @@ intr_irq(void) {
     // disable interrupt and prepare to return
 	//intr_disable();
 }
+
+void undefined_intr(){
+	panic("undefined instruction\n");
+}
+
 void unhandled_mode(void) {
     panic("unhandled mode\n");
 }

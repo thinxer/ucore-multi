@@ -46,7 +46,6 @@ kern_init(void) {
     cprintf("b: %d\n", b);  // b: 18
 
     sched_init();
-    cprintf("sched_init done");
 
     proc_init();
 

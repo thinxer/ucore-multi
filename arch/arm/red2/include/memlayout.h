@@ -23,6 +23,8 @@
 
 #define USERTOP             0x24000000
 #define USERBASE            0x23000000
+#define USTACKPAGE          2
+#define USTACKSIZE          (USTACKPAGE * PGSIZE)
 
 #define USER_ACCESS(start, end)                     \
     (USERBASE <= (start) && (start) < (end) && (end) <= USERTOP)

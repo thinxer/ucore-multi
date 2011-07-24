@@ -44,6 +44,7 @@ struct proc_struct {
     int pid;                                    // Process ID
     int runs;                                   // the running times of Proces
     uintptr_t kstack;                           // Process kernel stack
+    uintptr_t ustack;				// Process user stack
     volatile bool need_resched;                 // bool value: need to be rescheduled to release CPU?
     struct proc_struct *parent;                 // the parent process
     struct context context;                     // Switch here to run process
@@ -74,7 +75,7 @@ extern struct proc_struct *kswapd;
 
 void proc_init(void);
 void proc_run(struct proc_struct *proc);
-int kernel_thread(int (*fn)(void *), void *arg, uint32_t clone_flags);
+int kernel_thread(int (*fn)(void *), void *arg);
 
 char *set_proc_name(struct proc_struct *proc, const char *name);
 char *get_proc_name(struct proc_struct *proc);

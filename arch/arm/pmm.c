@@ -163,6 +163,7 @@ enable_paging() {
 //  size: memory size
 //  pa:   physical address of this memory
 //  perm: permission of this memory
+/*
 static void
 boot_map_segment(pde_t *pgdir, uintptr_t la, size_t size, uintptr_t pa, uint32_t perm) {
     assert(PGOFF(la) == PGOFF(pa));
@@ -175,7 +176,7 @@ boot_map_segment(pde_t *pgdir, uintptr_t la, size_t size, uintptr_t pa, uint32_t
         *ptep = pa | PTE_P | perm;
     }
 }
-
+*/
 /**
  * allocate pages for boot pgdir using pmm->alloc_pages
  *
@@ -184,6 +185,7 @@ boot_map_segment(pde_t *pgdir, uintptr_t la, size_t size, uintptr_t pa, uint32_t
  *
  * @return the kernel virtual address of this allocated page
  */
+/*
 static void *
 boot_alloc_page(void) {
     struct Page *p;
@@ -192,7 +194,7 @@ boot_alloc_page(void) {
         panic("boot_alloc_page failed.\n");
     return page2kva(p);
 }
-
+*/
 // setup a pmm to manage physical memory, build PDT&PT to setup paging
 // mechanism check the correctness of pmm & paging mechanism, print
 // PDT&PT
@@ -260,6 +262,7 @@ pmm_init(void) {
  * @param create    a logical value to decide if alloc a page for PT
  * @return          the kernel virtual address of this pte
  */
+/*
 pte_t *
 get_pte(pde_t *pgdir, uintptr_t la, bool create) {
     pde_t *pdep = &pgdir[PDX(la)];
@@ -312,7 +315,7 @@ page_remove(pde_t *pgdir, uintptr_t la) {
         page_remove_pte(pgdir, la, ptep);
     }
 }
-
+*/
 /* build the map of phy addr of an Page with the linear addr la
  * note: PT is changed, so the TLB need to be invalidate
  *
@@ -322,6 +325,7 @@ page_remove(pde_t *pgdir, uintptr_t la) {
  * @param perm  the permission of this Page which is setted in related pte
  * @return always 0
  */
+/*
 int
 page_insert(pde_t *pgdir, struct Page *page, uintptr_t la, uint32_t perm) {
     pte_t *ptep = get_pte(pgdir, la, 1);
@@ -342,10 +346,11 @@ page_insert(pde_t *pgdir, struct Page *page, uintptr_t la, uint32_t perm) {
     tlb_invalidate(pgdir, la);
     return 0;
 }
-
+*/
 // invalidate a TLB entry, but only if the page tables being
 // edited are the ones currently in use by the processor.
 // TODO invalidate only la entry.
+/*
 void
 tlb_invalidate(pde_t *pgdir, uintptr_t la) {
     asm volatile (
@@ -353,9 +358,10 @@ tlb_invalidate(pde_t *pgdir, uintptr_t la) {
     ::"r" (0)
     );
 }
-
+*/
 // call alloc_page & page_insert functions to allocate a page size memory &
 // setup an addr map pa<->la with linear address la and the PDT pgdir
+/*
 struct Page *
 pgdir_alloc_page(pde_t *pgdir, uintptr_t la, uint32_t perm) {
     struct Page *page = alloc_page();
@@ -445,14 +451,14 @@ copy_range(pde_t *to, pde_t *from, uintptr_t start, uintptr_t end, bool share) {
     } while (start != 0 && start < end);
     return 0;
 }
-
+*/
 
 static void
 check_alloc_page(void) {
     pmm_manager->check();
     cprintf("check_alloc_page() succeeded!\n");
 }
-
+/*
 static void
 check_pgdir(void) {
     assert(npage <= (PKERNBASE + KMEMSIZE) / PGSIZE);
@@ -501,7 +507,7 @@ check_pgdir(void) {
 
     cprintf("check_pgdir() succeeded!\n");
 }
-
+*/
 /*
 //perm2str - use string 'u,r,w,-' to present the permission
 static const char *
