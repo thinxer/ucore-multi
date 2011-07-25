@@ -29,7 +29,7 @@ struct context {
     uint32_t er2; // r2
     uint32_t er3; // r3
     uint32_t efp; // r11
-    uint32_t eic; // r12
+    uint32_t eip; // r12
 };
 
 #define PROC_NAME_LEN               15

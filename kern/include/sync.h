@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <atomic.h>
 #include <sched.h>
+#include <stdio.h>
 
 static inline bool
 __intr_save(void) {

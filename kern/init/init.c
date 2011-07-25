@@ -60,6 +60,7 @@ kern_init(void) {
 
     cpu_idle();
     // do nothing
-    while(1);
+    while(1)
+	    cprintf("!");
 }
 

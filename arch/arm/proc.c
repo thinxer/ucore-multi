@@ -60,8 +60,6 @@ SYS_getpid      : get the process's pid
 
 // the process set's list
 list_entry_t proc_list;
-// the process set's mm's list
-list_entry_t proc_mm_list;
 
 #define HASH_SHIFT          10
 #define HASH_LIST_SIZE      (1 << HASH_SHIFT)
@@ -76,8 +74,6 @@ struct proc_struct *idleproc = NULL;
 struct proc_struct *initproc = NULL;
 // current proc
 struct proc_struct *current = NULL;
-// swap daemon proc
-struct proc_struct *kswapd = NULL;
 
 static int nr_process = 0;
 
@@ -252,11 +248,6 @@ kernel_thread(int (*fn)(void *), void *arg) {
     tf.tf_regs.reg_r[1] = (uint32_t)fn; // address to jump to (fn) is in r1, arg is in r0
     tf.tf_epc = (uint32_t)kernel_thread_entry; // look at entry.S
     asm volatile ("mrs %0, cpsr" : "=r" (tf.tf_sr)); // get spsr to be restored
-    //tf.tf_cs = KERNEL_CS;
-    //tf.tf_ds = tf.tf_es = tf.tf_ss = KERNEL_DS;
-    //tf.tf_regs.reg_ebx = (uint32_t)fn;
-    //tf.tf_regs.reg_edx = (uint32_t)arg;
-    //tf.tf_eip = (uint32_t)kernel_thread_entry;
     return do_fork(0, 0, &tf);
 }
 
@@ -275,23 +266,6 @@ setup_kstack(struct proc_struct *proc) {
 static void
 put_kstack(struct proc_struct *proc) {
     free_pages((void*)(proc->kstack), KSTACKPAGE); //kva2page((void *)(proc->kstack)), KSTACKPAGE);
-}
-
-// setup_ustack - alloc pages with size USTACKPAGE as process user stack
-static int
-setup_ustack(struct proc_struct *proc) {
-    struct Page *page = alloc_pages(USTACKPAGE);
-    if (page != NULL) {
-        proc->ustack = (uintptr_t)page; //(uintptr_t)page2kva(page);
-        return 0;
-    }
-    return -E_NO_MEM;
-}
-
-// put_ustack - free the memory space of process user stack
-static void
-put_ustack(struct proc_struct *proc) {
-    free_pages((void*)(proc->ustack), USTACKPAGE); //kva2page((void *)(proc->kstack)), KSTACKPAGE);
 }
 
 // de_thread - delete this thread "proc" from thread_group list
@@ -318,10 +292,11 @@ next_thread(struct proc_struct *proc) {
 static void
 copy_thread(struct proc_struct *proc, uintptr_t esp, struct trapframe *tf) {
     proc->tf = (struct trapframe *)(proc->kstack + KSTACKSIZE) - 1;
+    assert((uintptr_t)proc->tf + sizeof(struct trapframe) == proc->kstack + KSTACKSIZE);
     *(proc->tf) = *tf;
     proc->tf->tf_regs.reg_r[3] = 0;
     proc->tf->tf_esp = esp;
-    //proc->tf->tf_eflags |= FL_IF;
+    proc->tf->tf_sr &= ~0x80;
 
     proc->context.epc = (uintptr_t)forkret;
     proc->context.esp = (uintptr_t)(proc->tf);
@@ -332,62 +307,8 @@ void
 may_killed(void) {
     // killed by other process, already set exit_code and call __do_exit directly
     if (current->flags & PF_EXITING) {
-	//cprintf("got killed\n");
         __do_exit();
     }
-}
-int
-do_create(int (*fn)(void*), void *arg){
-	struct trapframe tf;
- 	memset(&tf, 0, sizeof(struct trapframe));
-    	tf.tf_regs.reg_r[0] = (uint32_t)arg;
-    	tf.tf_regs.reg_r[1] = (uint32_t)fn; // address to jump to (fn) is in r1, arg is in r0
-    	tf.tf_epc = (uint32_t)kernel_thread_entry; // look at entry.S
-    	asm volatile ("mrs %0, cpsr" : "=r" (tf.tf_sr)); // get spsr to be restored
-    
-	int ret = -E_NO_FREE_PROC;
-	struct proc_struct *proc;
-	if (nr_process >= MAX_PROCESS) {
-		goto fork_out;
-	}
-
-	ret = -E_NO_MEM;
-
-	if ((proc = alloc_proc()) == NULL) {
-		cprintf("alloc_proc failed\n");
-		goto fork_out;
-    	}
-
-	proc->parent = current;
-   	list_init(&(proc->thread_group));
-    	assert(current->wait_state == 0);
-
-    	if (setup_kstack(proc) != 0) {
-		cprintf("setup_kstack failed\n");
-        	goto bad_fork_cleanup_proc;
-    	}
-    	copy_thread(proc, (uintptr_t)(proc->kstack), &tf);
-
-    	bool intr_flag;
-    	local_intr_save(intr_flag);
-   	{
-        	proc->pid = get_pid();
-        	hash_proc(proc);
-        	set_links(proc);
-    	}
-    	local_intr_restore(intr_flag);
-
-    	wakeup_proc(proc);
-	
-    	ret = proc->pid;
-fork_out:
-    	return ret;
-
-bad_fork_cleanup_kstack:
-    	put_kstack(proc);
-bad_fork_cleanup_proc:
-    	kfree(proc);
-    	goto fork_out;
 }
 
 // do_fork - parent process for a new child process
@@ -397,7 +318,6 @@ bad_fork_cleanup_proc:
 //    4. call wakup_proc to make the new child process RUNNABLE 
 int
 do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf) {
-    //cprintf("do_fork\n");
     int ret = -E_NO_FREE_PROC;
     struct proc_struct *proc;
     if (nr_process >= MAX_PROCESS) {
@@ -411,57 +331,30 @@ do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf) {
         goto fork_out;
     }
 
-    //cprintf("alloced proc\n");
     proc->parent = current;
     list_init(&(proc->thread_group));
     assert(current->wait_state == 0);
 
     if (setup_kstack(proc) != 0) {
-	cprintf("setup_kstack failed\n");
         goto bad_fork_cleanup_proc;
     }
-/*
-    if (setup_ustack(proc) != 0) {
-	    cprintf("setup_ustack failed\n");
-	    goto bad_fork_cleanup_kstack;
-    }
-*/
-    //cprintf("before memcpy\n");
-    //memcpy(proc->kstack, current->kstack, KSTACKSIZE);
-    //memcpy(proc->ustack, current->ustack, USTACKSIZE);
-    //cprintf("end memcpy\n");
-    // vfork only, no need to do copy_mm
-    //if (copy_mm(clone_flags, proc) != 0) {
-    //    goto bad_fork_cleanup_kstack;
-    //}
     copy_thread(proc, (uintptr_t)(proc->kstack), tf);
 
-    //cprintf("copy_thread done\n");
     bool intr_flag;
     local_intr_save(intr_flag);
     {
         proc->pid = get_pid();
         hash_proc(proc);
         set_links(proc);
-        //if (clone_flags & CLONE_THREAD) {
-        //    list_add_before(&(current->thread_group), &(proc->thread_group));
-        //}
     }
     local_intr_restore(intr_flag);
 
-    //cprintf("before wakeup_proc\n");
     wakeup_proc(proc);
-    //cprintf("end wakeup_proc\n");
-    //current->state = PROC_SLEEPING;
-    //current->wait_state = WT_CHILD;
-    //schedule();
 	
     ret = proc->pid;
 fork_out:
     return ret;
 
-bad_fork_cleanup_kstack:
-    put_kstack(proc);
 bad_fork_cleanup_proc:
     kfree(proc);
     goto fork_out;
@@ -548,210 +441,10 @@ do_exit_thread(int error_code) {
     return __do_exit();
 }
 
-/*
-// load_icode -  called by sys_exec-->do_execve
-// 1. create a new mm for current process
-// 2. create a new PDT, and mm->pgdir= kernel virtual addr of PDT
-// 3. copy TEXT/DATA/BSS parts in binary to memory space of process
-// 4. call mm_map to setup user stack, and put parameters into user stack
-// 5. setup trapframe for user environment	
-static int
-load_icode(unsigned char *binary, size_t size) {
-    if (current->mm != NULL) {
-        panic("load_icode: current->mm must be empty.\n");
-    }
-
-    int ret = -E_NO_MEM;
-
-    struct mm_struct *mm;
-    if ((mm = mm_create()) == NULL) {
-        goto bad_mm;
-    }
-
-    if (setup_pgdir(mm) != 0) {
-        goto bad_pgdir_cleanup_mm;
-    }
-
-    mm->brk_start = 0;
-
-    struct Page *page;
-
-    struct elfhdr *elf = (struct elfhdr *)binary;
-    struct proghdr *ph = (struct proghdr *)(binary + elf->e_phoff);
-    if (elf->e_magic != ELF_MAGIC) {
-        ret = -E_INVAL_ELF;
-        goto bad_elf_cleanup_pgdir;
-    }
-
-    uint32_t vm_flags, perm;
-    struct proghdr *ph_end = ph + elf->e_phnum;
-    for (; ph < ph_end; ph ++) {
-        if (ph->p_type != ELF_PT_LOAD) {
-            continue ;
-        }
-        if (ph->p_filesz > ph->p_memsz) {
-            ret = -E_INVAL_ELF;
-            goto bad_cleanup_mmap;
-        }
-        if (ph->p_filesz == 0) {
-            continue ;
-        }
-        vm_flags = 0, perm = PTE_U;
-        if (ph->p_flags & ELF_PF_X) vm_flags |= VM_EXEC;
-        if (ph->p_flags & ELF_PF_W) vm_flags |= VM_WRITE;
-        if (ph->p_flags & ELF_PF_R) vm_flags |= VM_READ;
-        if (vm_flags & VM_WRITE) perm |= PTE_W;
-
-        if ((ret = mm_map(mm, ph->p_va, ph->p_memsz, vm_flags, NULL)) != 0) {
-            goto bad_cleanup_mmap;
-        }
-        if (mm->brk_start < ph->p_va + ph->p_memsz) {
-            mm->brk_start = ph->p_va + ph->p_memsz;
-        }
-
-        unsigned char *from = binary + ph->p_offset;
-        size_t off, size;
-        uintptr_t start = ph->p_va, end, la = ROUNDDOWN(start, PGSIZE);
-
-        ret = -E_NO_MEM;
-
-        end = ph->p_va + ph->p_filesz;
-        while (start < end) {
-            if ((page = pgdir_alloc_page(mm->pgdir, la, perm)) == NULL) {
-                goto bad_cleanup_mmap;
-            }
-            off = start - la, size = PGSIZE - off, la += PGSIZE;
-            if (end < la) {
-                size -= la - end;
-            }
-            memcpy(page2kva(page) + off, from, size);
-            start += size, from += size;
-        }
-
-        end = ph->p_va + ph->p_memsz;
-
-        if (start < la) {
-            // ph->p_memsz == ph->p_filesz
-            if (start == end) {
-                continue ;
-            }
-            off = start + PGSIZE - la, size = PGSIZE - off;
-            if (end < la) {
-                size -= la - end;
-            }
-            memset(page2kva(page) + off, 0, size);
-            start += size;
-            assert((end < la && start == end) || (end >= la && start == la));
-        }
-
-        while (start < end) {
-            if ((page = pgdir_alloc_page(mm->pgdir, la, perm)) == NULL) {
-                goto bad_cleanup_mmap;
-            }
-            off = start - la, size = PGSIZE - off, la += PGSIZE;
-            if (end < la) {
-                size -= la - end;
-            }
-            memset(page2kva(page) + off, 0, size);
-            start += size;
-        }
-    }
-
-    mm->brk_start = mm->brk = ROUNDUP(mm->brk_start, PGSIZE);
-
-    vm_flags = VM_READ | VM_WRITE | VM_STACK;
-    if ((ret = mm_map(mm, USTACKTOP - USTACKSIZE, USTACKSIZE, vm_flags, NULL)) != 0) {
-        goto bad_cleanup_mmap;
-    }
-
-    bool intr_flag;
-    local_intr_save(intr_flag);
-    {
-        list_add(&(proc_mm_list), &(mm->proc_mm_link));
-    }
-    local_intr_restore(intr_flag);
-    mm_count_inc(mm);
-    current->mm = mm;
-    current->cr3 = PADDR(mm->pgdir);
-    lcr3(PADDR(mm->pgdir));
-
-    struct trapframe *tf = current->tf;
-    memset(tf, 0, sizeof(struct trapframe));
-    tf->tf_cs = USER_CS;
-    tf->tf_ds = USER_DS;
-    tf->tf_es = USER_DS;
-    tf->tf_ss = USER_DS;
-    tf->tf_esp = USTACKTOP;
-    tf->tf_eip = elf->e_entry;
-    tf->tf_eflags = FL_IF;
-    ret = 0;
-out:
-    return ret;
-bad_cleanup_mmap:
-    exit_mmap(mm);
-bad_elf_cleanup_pgdir:
-    put_pgdir(mm);
-bad_pgdir_cleanup_mm:
-    mm_destroy(mm);
-bad_mm:
-    goto out;
-}
-
-// do_execve - call exit_mmap(mm)&pug_pgdir(mm) to reclaim memory space of current process
-//           - call load_icode to setup new memory space accroding binary prog.
-int
-do_execve(const char *name, size_t len, unsigned char *binary, size_t size) {
-    struct mm_struct *mm = current->mm;
-
-    char local_name[PROC_NAME_LEN + 1];
-    memset(local_name, 0, sizeof(local_name));
-    if (len > PROC_NAME_LEN) {
-        len = PROC_NAME_LEN;
-    }
-
-    lock_mm(mm);
-    {
-        if (!copy_from_user(mm, local_name, name, len, 0)) {
-            unlock_mm(mm);
-            return -E_INVAL;
-        }
-    }
-    unlock_mm(mm);
-
-    if (mm != NULL) {
-        lcr3(boot_cr3);
-        if (mm_count_dec(mm) == 0) {
-            exit_mmap(mm);
-            put_pgdir(mm);
-            bool intr_flag;
-            local_intr_save(intr_flag);
-            {
-                list_del(&(mm->proc_mm_link));
-            }
-            local_intr_restore(intr_flag);
-            mm_destroy(mm);
-        }
-        current->mm = NULL;
-    }
-
-    int ret;
-    if ((ret = load_icode(binary, size)) != 0) {
-        goto execve_exit;
-    }
-    de_thread(current);
-    set_proc_name(current, local_name);
-    return 0;
-
-execve_exit:
-    do_exit(ret);
-    panic("already exit: %e.\n", ret);
-}
-*/
 // do_yield - ask the scheduler to reschedule
 int
 do_yield(void) {
-    //current->need_resched = 1;
-    schedule();
+    current->need_resched = 1;
     return 0;
 }
 
@@ -836,18 +529,6 @@ __do_kill(struct proc_struct *proc, int error_code) {
     }
     return -E_KILLED;
 }
-/*
-// do_kill - kill process with pid
-int
-do_kill(int pid, int error_code) {
-    struct proc_struct *proc;
-    if ((proc = find_proc(pid)) != NULL) {
-        return __do_kill(proc, error_code);
-    }
-    return -E_INVAL;
-}
-
-*/
 
 // do_sleep - set current process state to sleep and add timer with "time"
 //          - then call scheduler. if process run again, delete timer first.
@@ -875,13 +556,6 @@ do_sleep(unsigned int time) {
 static int
 kernel_execve(const char *name, unsigned char *binary, size_t size) {
     int ret, len = strlen(name);
-    /*
-    asm volatile (
-        "int %1;"
-        : "=a" (ret)
-        : "i" (T_SYSCALL), "0" (SYS_exec), "d" (name), "c" (len), "b" (binary), "D" (size)
-        : "memory");
-    */
     asm volatile (
 	"mov r4, %2\n\t"
 	"mov r5, %3\n\t"
@@ -895,52 +569,16 @@ kernel_execve(const char *name, unsigned char *binary, size_t size) {
     return ret;
 }
 
-#define __KERNEL_EXECVE(name, binary, size) ({                          \
-            cprintf("kernel_execve: pid = %d, name = \"%s\".\n",        \
-                    current->pid, name);                                \
-            kernel_execve(name, binary, (size_t)(size));                \
-        })
-
-#define KERNEL_EXECVE(x) ({                                             \
-            extern unsigned char _binary_obj___user_##x##_out_start[],  \
-                _binary_obj___user_##x##_out_size[];                    \
-            __KERNEL_EXECVE(#x, _binary_obj___user_##x##_out_start,     \
-                            _binary_obj___user_##x##_out_size);         \
-        })
-
-#define __KERNEL_EXECVE2(x, xstart, xsize) ({                           \
-            extern unsigned char xstart[], xsize[];                     \
-            __KERNEL_EXECVE(#x, xstart, (size_t)xsize);                 \
-        })
-
-#define KERNEL_EXECVE2(x, xstart, xsize)        __KERNEL_EXECVE2(x, xstart, xsize)
-
 // user_main - kernel thread used to exec a user program
 static int
 user_main(void *arg) {
-#ifdef TEST
-    KERNEL_EXECVE2(TEST, TESTSTART, TESTSIZE);
-#else
-    //KERNEL_EXECVE(hello);
     cprintf("Hello World!\n");
-#endif
     int i;
     for(i=0; i<10; ++i){
-        cprintf("do some thing\n");
-	do_yield();
-	//do_sleep(100);
+        cprintf("[%d]do some thing\n", *(int*)arg);
+	do_sleep(20);
     }
-    //panic("user_main execve failed.\n");
     return 0;
-}
-
-static int user_test(void* arg){ 
-	int i;
-    	for(i=0; i<10; ++i){
-        	cprintf("do some thing else\n");
-		do_yield();
-    	}
-	return 0;
 }
 
 // init_main - the second kernel thread used to create kswapd_main & user_main kernel threads
@@ -952,38 +590,20 @@ init_main(void *arg) {
     size_t nr_free_pages_store = nr_free_pages();
     size_t slab_allocated_store = slab_allocated();
 
-    unsigned int nr_process_store = nr_process;
-
-    pid = do_create(user_main, NULL);
-    if (pid <= 0) {
+    int a = 1;
+    pid = kernel_thread(user_main, &a);
+    if (pid <= 0)
         panic("create user_main failed.\n");
+
+    int i;
+    for(i=0; i<10; ++i){
+        cprintf("do some thing else in init_main\n");
+	do_sleep(5);
     }
 
-    //pid = do_create(user_test, NULL);
-    //if (pid <= 0)
-    //    panic("create user_test failed.\n");
-    
-
-	int i;
-    	for(i=0; i<10; ++i){
-        	cprintf("do some thing else in init_main\n");
-		do_yield();
-    	}
-    //pid = kernel_thread(user_main, NULL, 0);
-    //if (pid <= 0) {
-    //    panic("create user_main failed.\n");
-    // }
-
-    //cprintf("created user_main\n");
-
     while (do_wait(0, NULL) == 0) ;
-    //{
-    //    if (nr_process_store == nr_process) {
-    //        break;
-    //    }
 
     cprintf("all user-mode processes have quit.\n");
-    cprintf("nr_process %d\n", nr_process);
     assert(nr_process == 2);
     assert(nr_free_pages_store == nr_free_pages());
     assert(slab_allocated_store == slab_allocated());
@@ -998,7 +618,6 @@ proc_init(void) {
     int i;
 
     list_init(&proc_list);
-    list_init(&proc_mm_list);
     for (i = 0; i < HASH_LIST_SIZE; i ++) {
         list_init(hash_list + i);
     }
@@ -1016,7 +635,7 @@ proc_init(void) {
 
     current = idleproc;
 
-    int pid = do_create(init_main, NULL);
+    int pid = kernel_thread(init_main, NULL);
     if (pid <= 0) {
         panic("create init_main failed.\n");
     }
@@ -1033,8 +652,8 @@ void
 cpu_idle(void) {
     while (1) {
         if (current->need_resched) {
-	    cprintf("need reschedule\n");
-            schedule();
+	    //cprintf("need reschedule\n");
+            //schedule();
         }
     }
 }

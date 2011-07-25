@@ -35,6 +35,7 @@ schedule(void) {
     bool intr_flag;
     list_entry_t *le, *last;
     struct proc_struct *next = NULL;
+    //cprintf("schedule\n");
     local_intr_save(intr_flag);
     {
         current->need_resched = 0;
@@ -53,10 +54,12 @@ schedule(void) {
         }
         next->runs ++;
         if (next != current) {
+	    //cprintf("switched process\n");
             proc_run(next);
         }
     }
     local_intr_restore(intr_flag);
+    //cprintf("schedule out\n");
 }
 
 void

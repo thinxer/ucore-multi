@@ -1,19 +1,5 @@
 # vectors.S sends all traps here.
 .text
-# common part of all exceptions, entry
-.globl __alltraps
-__alltraps:
-	# Put spsr (saved state) in trapframe
-	mrs r0, spsr
-	stmfd sp!, {r0}
-	
-	# Put in r0 the adress of the stack
-	# to pass a pointer to the trapframe as an argument to trap()
-	mov r0, sp
-
-	b trap
-
-
 # common part of all exceptions, exit
 .globl __trapret
 __trapret:
@@ -23,10 +9,10 @@ __trapret:
 	
 	# Either spsr is the supervisor mode, so we restore the registers excluding sp
 	# or if spsr is the user mode, we update the whole range of registers including sp
-	and r0, r0, #0xF
+	#and r0, r0, #0xF
 	# in case spsr is user mode, r0 should be null
-	cmp r0, #0
-	beq __restore_user
+	#cmp r0, #0
+	#beq __restore_user
 	
 	# Exiting the exception handler
 	# restoring the registers at the state before exception
@@ -61,7 +47,7 @@ __save_user:
 forkrets:
     # set stack to this new process's trapframe
 	mov sp, r0
-	
+	b __trapret
 	ldmfd sp!,{r0-r2}
 	# in case the saved register is supervisor, it may have been manually saved
 	# load the register and reload the pc without ^
@@ -71,7 +57,7 @@ forkrets:
 	#beq __restore_user
 	ldmfd sp!,{r0-r12}
 	add sp, sp, #4
-	ldmfd sp!,{pc}
+	ldmfd sp!,{pc}^
 
 
 .globl __abort

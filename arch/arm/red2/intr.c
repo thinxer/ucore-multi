@@ -49,13 +49,15 @@ intr_clearpending(uint32_t offset) {
 
 void
 intr_irq(void) {
-	cprintf("timer\n");
-	//ticks++;
-	//run_timer_list();
-	//if (ticks % TICK_NUM == 0){
-	//	assert(current != NULL);
-	//	current->need_resched = 1;
-	//}
+	ticks++;
+	run_timer_list();
+	if (ticks % TICK_NUM == 0){
+		assert(current != NULL);
+		current->need_resched = 1;
+	}
+	if(current->need_resched == 1){
+		schedule();
+	}
 /*
 	uint32_t int_offset = *(volatile uint32_t *) INTOFFSET;
     intr_clearpending(int_offset);
