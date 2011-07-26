@@ -39,16 +39,29 @@ intr_clearpending(uint32_t offset) {
     *(volatile uint32_t *)INTPND |= 1 << offset;
 }
 
+static void
+print_tf(struct trapframe* tf) {
+    int i;
+    cprintf("tf->pc: %08lx\n", tf->tf_pc);
+    cprintf("tf->spsr: %08lx\n", tf->tf_spsr);
+    for (i=0; i<13; i++) {
+        cprintf("tf->regs[%d]: %08lx\n", i, tf->tf_regs.reg_r[i]);
+    }
+}
+
 void
-intr_dispatch(void) {
+intr_dispatch(struct trapframe* tf, uint32_t code) {
 	uint32_t int_offset = *(volatile uint32_t *) INTOFFSET;
     intr_clearpending(int_offset);
-	cprintf("%d\t", int_offset);
+	cprintf("%d:%d\t", code, int_offset);
 
     // enable interrupt nesting
 	intr_enable();
 
     // dispatch interrupt
+    cprintf("tf@0x%08lx\n", tf);
+    cprintf("tf->tf_pc@0x%08lx\n", &tf->tf_pc);
+    print_tf(tf);
     cprintf("interrupt occured\n");
 
     // disable interrupt and prepare to return

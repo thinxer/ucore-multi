@@ -61,22 +61,22 @@ __intr_vector_end:
  */
 irq_proc:
 	sub lr,lr,#4
-	stmfd sp!,{r14}
+	stmfd sp!,{lr}
 	mrs lr,spsr
-	stmfd sp!,{r14}
+	stmfd sp!,{lr}
+	stmfd sp!,{r0-r12}
+    mov r0, sp
+    mov r1, #0x33
 
     /* Go into svc mode and responds to the interrupt. */
     msr cpsr_c,#(DISABLE_IRQ|DISABLE_FIQ|SVC_MOD)
-
-	stmfd sp!,{r0-r3}
 	bl intr_dispatch
-	ldmfd sp!,{r0-r3}
 
     /* Return to the irq mode. */
     msr cpsr_c,#(DISABLE_IRQ|DISABLE_FIQ|IRQ_MOD)
-
-	ldmfd sp!,{r14}
-	msr spsr,r14
+	ldmfd sp!,{r0-r12}
+	ldmfd sp!,{lr}
+	msr spsr,lr
 	ldmfd sp!,{pc}^
 
 /**
@@ -84,9 +84,9 @@ irq_proc:
  */
 abort_proc:
 	sub lr,lr,#8
-	stmfd sp!,{r14}
+	stmfd sp!,{lr}
 	mrs lr,spsr
-	stmfd sp!,{r14}
+	stmfd sp!,{lr}
 
     /* Go into svc mode and responds to the interrupt. */
     msr cpsr_c,#(DISABLE_IRQ|DISABLE_FIQ|SVC_MOD)
