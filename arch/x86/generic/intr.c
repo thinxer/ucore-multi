@@ -97,13 +97,6 @@ pic_init(void) {
     }
 }
 
-#define TICK_NUM 100
-
-extern size_t ticks;
-static void print_ticks() {
-    cprintf("%d ticks\n",TICK_NUM);
-}
-
 /* *
  * Interrupt descriptor table:
  *
@@ -236,6 +229,9 @@ pgfault_handler(struct trapframe *tf) {
     panic("unhandled page fault.\n");
 }
 
+#define TICK_NUM 30
+extern size_t ticks;
+
 /* intr_dispatch - dispatch based on what type of trap occurred */
 static void
 intr_dispatch(struct trapframe *tf) {
@@ -253,7 +249,9 @@ intr_dispatch(struct trapframe *tf) {
     case IRQ_OFFSET + IRQ_TIMER:
         ticks ++;
         if (ticks % TICK_NUM == 0) {
-            print_ticks();
+            cprintf("tick!\n");
+            assert(current != NULL);
+            current->need_resched = 1;
         }
         break;
     case IRQ_OFFSET + IRQ_COM1:
@@ -280,7 +278,22 @@ intr_dispatch(struct trapframe *tf) {
  * */
 void
 trap(struct trapframe *tf) {
-    intr_dispatch(tf);
+    if (current == NULL) {
+        intr_dispatch(tf);
+    } else {
+        struct trapframe *otf = current->tf;
+        current->tf = tf;
+        bool in_kernel = trap_in_kernel(tf);
+
+        intr_dispatch(tf);
+
+        current->tf = otf;
+        if (!in_kernel) {
+            if (current->need_resched) {
+                schedule();
+            }
+        }
+    }
 }
 
 /* general interrupt */

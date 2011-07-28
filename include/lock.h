@@ -1,6 +1,7 @@
 #include <types.h>
 #include <assert.h>
 #include <bitops.h>
+#include <sched.h>
 
 typedef volatile unsigned long lock_t;
 
@@ -17,7 +18,9 @@ try_lock(lock_t *lock) {
 static inline void
 lock(lock_t *lock) {
     // deadlock
-    while (!try_lock(lock));
+    while (!try_lock(lock)) {
+        schedule();
+    }
 }
 
 static inline void

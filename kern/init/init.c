@@ -9,6 +9,7 @@
 #include <pmm.h>
 #include <slab.h>
 #include <vmm.h>
+#include <proc.h>
 
 /* Before calling into kern_init, we must make sure the memory is properly
  * mapped. This is because the kernel is compiled against KERNBASE but it's not
@@ -37,23 +38,18 @@ kern_init(void) {
     // virtual memory management
     vmm_init();
 
+    // process management
+    proc_init();
+
     // timer
     clock_init();
 
     // enable interrupts
     intr_enable();
 
-    atomic_t a;
-    atomic_set(&a, 7);
-    cprintf("a: %d\n", atomic_read(&a));    // a: 7
-
-    unsigned long b=16;
-    set_bit(1, &b);
-    cprintf("b: %d\n", b);  // b: 18
-
     // welcome message
     cprintf("\n(THU.CST) ucore\n");
 
     // do nothing
-    while(1);
+    cpu_idle();
 }
